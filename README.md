@@ -25,7 +25,6 @@ Esta é uma API simples desenvolvida com **Flask + MySQL**, voltada para uma loj
 
 ### 1. Clone o repositório
 
-
     git clone https://github.com/Lucas-Blanger/nego-maq-api.git
     cd nego-maq-api
 
@@ -42,6 +41,10 @@ Use o arquivo tables.sql incluído no projeto para criar as tabelas no MySQL:
 -- No MySQL ou Workbench
 source script.sql;
 
-### 5. Rode a aplicação
+### 5. (PARA DESENVOLVIMENTO) Popule o banco de dados
+
+    python -m seeders.seed
+
+### 6. Rode a aplicação
 
     python app.py
