@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS usuario (
     id VARCHAR(36) PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
-    senha_hash VARCHAR(128) NOT NULL,
+    senha_hash VARCHAR(255) NOT NULL,
     is_admin BOOLEAN DEFAULT FALSE
 );
 
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS produto (
     estoque INT NOT NULL DEFAULT 0
 );
 
--- Tabela de carrinho (opcional, para salvar se quiser no banco)
+-- Tabela de carrinho 
 CREATE TABLE IF NOT EXISTS carrinho (
     id INT AUTO_INCREMENT PRIMARY KEY,
     usuario_id VARCHAR(36),

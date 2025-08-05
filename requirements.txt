@@ -4,3 +4,4 @@ pymysql
 werkzeug
 gunicorn
 python-dotenv
+flask-cors

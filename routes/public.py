@@ -79,7 +79,7 @@ def finalizar_compra():
         mensagem += f"- {p.nome} (R${p.preco})\n"
 
     carrinho.clear()
-    link = f"https://wa.me/5599999999999?text={mensagem.replace(' ', '%20')}"
+    link = f"https://wa.me/555492205166?text={mensagem.replace(' ', '%20')}"
     return jsonify({"whatsapp_url": link})
 
 
