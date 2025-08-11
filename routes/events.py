@@ -31,7 +31,7 @@ def top_vendas():
         .filter(Evento.tipo_evento == "compra")
         .group_by(Evento.produto_id)
         .order_by(func.count(Evento.id).desc())
-        .limit(10)
+        .limit(3)
         .all()
     )
 
