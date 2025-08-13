@@ -104,8 +104,8 @@ def seed():
                 "estoque": 10,
             },
             {
-                "nome": "Faca Churrasco Rústica",
-                "descricao": "Estilo artesanal com excelente corte.",
+                "nome": "Tabua de Churrasco Rústica",
+                "descricao": "Estilo artesanal com excelente.",
                 "categoria": "churrascos",
                 "preco": 179.90,
                 "img": "https://images.tcdn.com.br/img/img_prod/1337522/kit_churrasco_faca_7_e_acessorios_para_presente_cod_635_373_1_ac21bebac7ba9272a47ddf1089654816.jpg",
