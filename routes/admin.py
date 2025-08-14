@@ -18,6 +18,8 @@ admin_routes = Blueprint("admin", __name__, url_prefix="/admin")
 
 def adicionar_produto():
     token = request.headers.get("Authorization")
+    if token and token.startswith("Bearer "):
+        token = token.split(" ")[1]
     if token != ADMIN_TOKEN:
         return jsonify({"erro": "Não autorizado"}), 403
 
@@ -52,10 +54,10 @@ def adicionar_produto():
 
 @admin_routes.route("/produtos/<produto_id>", methods=["DELETE"])
 # Remove um produto do catálogo pelo ID.
-
-
 def deletar_produto(produto_id):
     token = request.headers.get("Authorization")
+    if token and token.startswith("Bearer "):
+        token = token.split(" ")[1]
     if token != ADMIN_TOKEN:
         return jsonify({"erro": "Não autorizado"}), 403
 
@@ -72,6 +74,8 @@ def deletar_produto(produto_id):
 # Atualiza o estoque de um produto específico.
 def atualizar_estoque(produto_id):
     token = request.headers.get("Authorization")
+    if token and token.startswith("Bearer "):
+        token = token.split(" ")[1]
     if token != ADMIN_TOKEN:
         return jsonify({"erro": "Não autorizado"}), 403
 
@@ -96,6 +100,53 @@ def atualizar_estoque(produto_id):
                 "estoque": produto.estoque,
             }
         ),
+        200,
+    )
+
+
+@admin_routes.route("/produtos/<produto_id>", methods=["PUT"])
+# Atualiza o produto pelo ID.
+def atualizar_produto(produto_id):
+    token = request.headers.get("Authorization")
+    if token and token.startswith("Bearer "):
+        token = token.split(" ")[1]
+    if token != ADMIN_TOKEN:
+        return jsonify({"erro": "Não autorizado"}), 403
+
+    produto = Produto.query.get(produto_id)
+    if not produto:
+        return jsonify({"erro": "Produto não encontrado"}), 404
+
+    data = request.get_json()
+    categorias_validas = ["facas", "aventais", "estojos", "churrascos"]
+
+    if "categoria" in data and data["categoria"] not in categorias_validas:
+        return (
+            jsonify(
+                {
+                    "erro": f"Categoria inválida. Escolha entre: {', '.join(categorias_validas)}"
+                }
+            ),
+            400,
+        )
+
+    # Atualiza apenas os campos enviados
+    if "nome" in data:
+        produto.nome = data["nome"]
+    if "descricao" in data:
+        produto.descricao = data["descricao"]
+    if "categoria" in data:
+        produto.categoria = data["categoria"]
+    if "preco" in data:
+        produto.preco = data["preco"]
+    if "img" in data:
+        produto.img = data["img"]
+    if "estoque" in data:
+        produto.estoque = data["estoque"]
+
+    db.session.commit()
+    return (
+        jsonify({"mensagem": "Produto atualizado com sucesso", "produto": produto.id}),
         200,
     )
 
