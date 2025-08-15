@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from database.models import Produto
+from database import db
 
 public_routes = Blueprint("public", __name__)
 
