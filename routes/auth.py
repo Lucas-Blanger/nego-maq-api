@@ -43,3 +43,38 @@ def recuperar_senha():
     db.session.commit()
 
     return jsonify({'mensagem': 'Senha atualizada com sucesso'})
+
+
+@auth_routes.route('/editar', methods=['PUT'])
+def editar_perfil():
+    data = request.get_json()
+    email_atual = data.get('email_atual') # Email atual do usuário para identificação
+
+    if not email_atual:
+        return jsonify({'erro': 'Email atual é obrigatório'}), 400
+    
+    usuario = Usuario.query.filter_by(email=email_atual).first()
+
+    if not usuario:
+        return jsonify({'erro': 'Usuário não encontrado'}), 404
+
+    # Atualizando campos se fornecidos
+    novo_nome = data.get('nome')
+    novo_email = data.get('novo_email')
+    novo_telefone = data.get('novo_telefone')
+    nova_senha = data.get('nova_senha')
+
+    if novo_nome:
+        usuario.nome = novo_nome
+
+    if novo_email:
+        # Verifica se o novo email já está em uso
+        if Usuario.query.filter_by(email=novo_email).first():
+            return jsonify({'erro': 'Novo email já está em uso'}), 400
+        usuario.email = novo_email
+
+    if nova_senha:
+        usuario.set_senha(nova_senha)
+
+    db.session.commit()
+    return jsonify({'mensagem': 'Perfil atualizado com sucesso'})

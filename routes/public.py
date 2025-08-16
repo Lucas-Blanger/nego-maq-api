@@ -32,7 +32,6 @@ def listar_produtos():
         ]
     )
 
-
 # listar produto por id
 @public_routes.route("/produtos/<string:id>", methods=["GET"])
 def buscar_produto_por_id(id):

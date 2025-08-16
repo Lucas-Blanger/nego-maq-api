@@ -14,8 +14,6 @@ admin_routes = Blueprint("admin", __name__, url_prefix="/admin")
 
 # Adiciona um novo produto ao catálogo.
 # Requer token de autorização de administrador (ADMIN_TOKEN).
-
-
 def adicionar_produto():
     token = request.headers.get("Authorization")
     if token and token.startswith("Bearer "):
