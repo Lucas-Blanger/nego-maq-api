@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS usuario (
     id VARCHAR(36) PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
+    telefone VARCHAR(15) NULL,
     senha_hash VARCHAR(255) NOT NULL,
     is_admin BOOLEAN DEFAULT FALSE
 );
