@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from database.models import Produto, Evento
+from database.models import Produto, Evento, Promocao
 from database import db
 from config import ADMIN_TOKEN
 import uuid
@@ -147,6 +147,44 @@ def atualizar_produto(produto_id):
         jsonify({"mensagem": "Produto atualizado com sucesso", "produto": produto.id}),
         200,
     )
+
+# Criar promoção
+@admin_routes.route('produto/promocao/<int:produto_id>', methods=['POST'])
+def criar_promocao(produto_id):
+    data = request.get_json()
+    desconto = data.get('desconto_percentual')
+
+    if desconto is None or desconto <= 0:
+        return jsonify({'erro': 'Desconto inválido'}), 400
+
+    produto = Produto.query.get(produto_id)
+    if not produto:
+        return jsonify({'erro': 'Produto não encontrado'}), 404
+
+    # Verifica se já existe promoção para esse produto
+    if produto.promocao:
+        return jsonify({'erro': 'Esse produto já está em promoção'}), 400
+
+    promocao = Promocao(produto_id=produto_id, desconto_percentual=desconto)
+
+    db.session.add(promocao)
+    db.session.commit()
+
+    return jsonify({'mensagem': 'Promoção criada com sucesso'}), 201
+
+
+# Remover promoção (pelo produto)
+@admin_routes.route('produto/promocao/<int:produto_id>', methods=['DELETE'])
+def remover_promocao(produto_id):
+    promocao = Promocao.query.filter_by(produto_id=produto_id).first()
+    if not promocao:
+        return jsonify({'erro': 'Promoção não encontrada'}), 404
+
+    db.session.delete(promocao)
+    db.session.commit()
+
+    return jsonify({'mensagem': 'Promoção removida com sucesso'}), 200
+
 
 
 # FUNÇÕES DE RELATÓRIOS

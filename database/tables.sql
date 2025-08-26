@@ -43,3 +43,12 @@ CREATE TABLE evento (
     FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE SET NULL,
     FOREIGN KEY (produto_id) REFERENCES produto(id) ON DELETE SET NULL
 );
+
+
+-- Tabela de Promoções
+CREATE TABLE IF NOT EXISTS promocao (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    produto_id VARCHAR(36) NOT NULL,
+    desconto_percentual FLOAT NOT NULL,
+    FOREIGN KEY (produto_id) REFERENCES produto(id) ON DELETE CASCADE
+);

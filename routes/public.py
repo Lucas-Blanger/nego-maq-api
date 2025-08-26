@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from database.models import Produto
+from database.models import Produto, Promocao
 from database import db
 
 public_routes = Blueprint("public", __name__)
@@ -105,3 +105,17 @@ def buscar_produtos_por_nome():
     ]
 
     return jsonify(resultados)
+
+# Listar as promoções
+@public_routes.route('/promocoes', methods=['GET'])
+def listar_promocoes():
+    promocoes = Promocao.query.all()
+
+    return jsonify([{
+        'id': p.id,
+        'produto_id': p.produto_id,
+        'produto_nome': p.produto.nome,
+        'preco_original': p.produto.preco,
+        'desconto_percentual': p.desconto_percentual,
+        'preco_com_desconto': round(p.produto.preco - (p.produto.preco * (p.desconto_percentual / 100)), 2)
+    } for p in promocoes]), 200

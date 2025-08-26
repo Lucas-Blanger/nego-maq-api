@@ -42,3 +42,13 @@ class Evento(db.Model):
 
     def __repr__(self):
         return f"<Evento {self.tipo_evento} - Produto {self.produto_id}>"
+
+
+class Promocao(db.Model):
+    __tablename__ = "promocao"
+
+    id = db.Column(db.Integer, primary_key=True)
+    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=False)
+    desconto_percentual = db.Column(db.Float, nullable=False)
+
+    produto = db.relationship("Produto", backref=db.backref("promocao", uselist=False))
