@@ -11,6 +11,7 @@ services:
       - .env
     depends_on:
       - db
+    command: sh /app/entrypoint.sh
 
   db:
     image: mysql:8.0
