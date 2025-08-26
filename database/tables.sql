@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS produto (
 
 -- Tabela de carrinho 
 CREATE TABLE IF NOT EXISTS carrinho (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id VARCHAR(36) AUTO_INCREMENT PRIMARY KEY,
     usuario_id VARCHAR(36),
     produto_id VARCHAR(36),
     quantidade INT DEFAULT 1,
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS carrinho (
 
 -- Tabela de Eventos 
 CREATE TABLE evento (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id String(36) AUTO_INCREMENT PRIMARY KEY,
     usuario_id VARCHAR(36),
     produto_id VARCHAR(36),
     tipo_evento VARCHAR(50), -- "visualizacao", "adicao_carrinho", "compra", "busca", "clique"
@@ -47,7 +47,7 @@ CREATE TABLE evento (
 
 -- Tabela de Promoções
 CREATE TABLE IF NOT EXISTS promocao (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id String(36) AUTO_INCREMENT PRIMARY KEY,
     produto_id VARCHAR(36) NOT NULL,
     desconto_percentual FLOAT NOT NULL,
     FOREIGN KEY (produto_id) REFERENCES produto(id) ON DELETE CASCADE

@@ -33,7 +33,7 @@ class Usuario(db.Model):
 class Evento(db.Model):
     __tablename__ = "evento"
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = db.Column(db.String(36), primary_key=True, autoincrement=True)
     usuario_id = db.Column(db.String(36), db.ForeignKey("usuario.id"), nullable=True)
     produto_id = db.Column(db.String(36), db.ForeignKey("produto.id"), nullable=True)
     tipo_evento = db.Column(db.String(50), nullable=True)
@@ -47,8 +47,8 @@ class Evento(db.Model):
 class Promocao(db.Model):
     __tablename__ = "promocao"
 
-    id = db.Column(db.Integer, primary_key=True)
-    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'), nullable=False)
+    id = db.Column(db.String(36), primary_key=True)
+    produto_id = db.Column(db.String(36), db.ForeignKey("produto.id"), nullable=False)
     desconto_percentual = db.Column(db.Float, nullable=False)
 
     produto = db.relationship("Produto", backref=db.backref("promocao", uselist=False))
