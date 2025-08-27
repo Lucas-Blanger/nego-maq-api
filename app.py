@@ -7,16 +7,17 @@ from flask_cors import CORS
 
 def create_app():
     app = Flask(__name__)
-    # somente para desenvolvimento
     CORS(app, origins=["http://localhost:9000"])
     app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = SQLALCHEMY_TRACK_MODIFICATIONS
 
     db.init_app(app)
+
+    with app.app_context():
+        db.create_all()  
+
     app.register_blueprint(bp)
-
     return app
-
 
 app = create_app()
 

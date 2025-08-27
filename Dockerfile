@@ -1,6 +1,9 @@
 FROM python:3.13.4-alpine3.22
 
-RUN apk add --no-cache gcc musl-dev libffi-dev
+RUN echo "http://mirrors.tuna.tsinghua.edu.cn/alpine/v3.22/main" > /etc/apk/repositories \
+    && echo "http://mirrors.tuna.tsinghua.edu.cn/alpine/v3.22/community" >> /etc/apk/repositories \
+    && apk update \
+    && apk add --no-cache gcc musl-dev libffi-dev
 
 WORKDIR /app
 
