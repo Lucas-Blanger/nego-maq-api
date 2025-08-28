@@ -32,6 +32,7 @@ def listar_produtos():
         ]
     )
 
+
 # listar produto por id
 @public_routes.route("/produtos/<string:id>", methods=["GET"])
 def buscar_produto_por_id(id):
@@ -50,6 +51,26 @@ def buscar_produto_por_id(id):
         )
     else:
         return jsonify({"erro": "Produto não encontrado"}), 404
+
+
+# listar os 10 produtos com maior estoque
+@public_routes.route("/produtos/home", methods=["GET"])
+def listar_top_estoque():
+    produtos = Produto.query.order_by(Produto.estoque.desc()).limit(10).all()
+    return jsonify(
+        [
+            {
+                "id": p.id,
+                "nome": p.nome,
+                "descricao": p.descricao,
+                "categoria": p.categoria,
+                "preco": float(p.preco),
+                "img": p.img,
+                "estoque": p.estoque,
+            }
+            for p in produtos
+        ]
+    )
 
 
 # listar adicionar no carrinho
@@ -106,16 +127,29 @@ def buscar_produtos_por_nome():
 
     return jsonify(resultados)
 
+
 # Listar as promoções
-@public_routes.route('/promocoes', methods=['GET'])
+@public_routes.route("/promocoes", methods=["GET"])
 def listar_promocoes():
     promocoes = Promocao.query.all()
 
-    return jsonify([{
-        'id': p.id,
-        'produto_id': p.produto_id,
-        'produto_nome': p.produto.nome,
-        'preco_original': p.produto.preco,
-        'desconto_percentual': p.desconto_percentual,
-        'preco_com_desconto': round(p.produto.preco - (p.produto.preco * (p.desconto_percentual / 100)), 2)
-    } for p in promocoes]), 200
+    return (
+        jsonify(
+            [
+                {
+                    "id": p.id,
+                    "produto_id": p.produto_id,
+                    "produto_nome": p.produto.nome,
+                    "preco_original": p.produto.preco,
+                    "desconto_percentual": p.desconto_percentual,
+                    "preco_com_desconto": round(
+                        p.produto.preco
+                        - (p.produto.preco * (p.desconto_percentual / 100)),
+                        2,
+                    ),
+                }
+                for p in promocoes
+            ]
+        ),
+        200,
+    )
