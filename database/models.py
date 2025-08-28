@@ -62,11 +62,13 @@ class StatusPedidoEnum(enum.Enum):
     ENTREGUE = "Entregue"
     CANCELADO = "Cancelado"
 
+
 class StatusPagamentoEnum(enum.Enum):
     PENDENTE = "Pendente"
     APROVADO = "Aprovado"
     RECUSADO = "Recusado"
     ESTORNADO = "Estornado"
+
 
 class Pedido(db.Model):
     __tablename__ = "pedidos"
@@ -74,11 +76,15 @@ class Pedido(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     usuario_id = db.Column(db.String(36), db.ForeignKey("usuario.id"), nullable=True)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
-    status = db.Column(db.Enum(StatusPedidoEnum), nullable=False, default=StatusPedidoEnum.PENDENTE)
+    status = db.Column(
+        db.Enum(StatusPedidoEnum), nullable=False, default=StatusPedidoEnum.PENDENTE
+    )
     frete_valor = db.Column(db.Numeric(10, 2), nullable=True)
     frete_tipo = db.Column(db.String(50), nullable=True)
     criado_em = db.Column(db.DateTime, server_default=func.now())
-    atualizado_em = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now())
+    atualizado_em = db.Column(
+        db.DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     usuario = db.relationship("Usuario", backref=db.backref("pedidos", lazy=True))
 
@@ -92,7 +98,7 @@ class ItemPedido(db.Model):
     quantidade = db.Column(db.Integer, nullable=False, default=1)
     preco_unitario = db.Column(db.Numeric(10, 2), nullable=False)
 
-    pedido = db.relationship("Pedidos", backref=db.backref("itens", lazy=True))
+    pedido = db.relationship("Pedido", backref=db.backref("itens", lazy=True))
     produto = db.relationship("Produto", backref=db.backref("itens_pedido", lazy=True))
 
 
@@ -102,10 +108,15 @@ class TransacaoPagamento(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     pedido_id = db.Column(db.String(36), db.ForeignKey("pedidos.id"), nullable=False)
     valor = db.Column(db.Numeric(10, 2), nullable=False)
-    status = db.Column(db.Enum(StatusPagamentoEnum), nullable=False, default=StatusPagamentoEnum.PENDENTE)
+    status = db.Column(
+        db.Enum(StatusPagamentoEnum),
+        nullable=False,
+        default=StatusPagamentoEnum.PENDENTE,
+    )
     metodo_pagamento = db.Column(db.String(50), nullable=False)
     criado_em = db.Column(db.DateTime, server_default=func.now())
-    atualizado_em = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now())
+    atualizado_em = db.Column(
+        db.DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
-    pedido = db.relationship("Pedidos", backref=db.backref("transacoes", lazy=True))
-    
+    pedido = db.relationship("Pedido", backref=db.backref("transacoes", lazy=True))
