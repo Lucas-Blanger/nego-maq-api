@@ -1,0 +1,106 @@
+from flask import Blueprint, request, jsonify
+from services.public.auth_service import (
+    registrar as registrar_service,
+    login as login_service,
+    recuperar_senha as recuperar_senha_service,
+    editar_perfil as editar_perfil_service,
+)
+
+auth_routes = Blueprint("auth", __name__, url_prefix="/auth")
+
+
+# REGISTRO
+@auth_routes.route("/registrar", methods=["POST"])
+def registrar():
+    try:
+        data = request.get_json()
+        usuario = registrar_service(
+            nome=data["nome"],
+            email=data["email"],
+            telefone=data["telefone"],
+            senha=data["senha"],
+            is_admin=data.get("is_admin", False),
+        )
+        return (
+            jsonify(
+                {
+                    "mensagem": "Usuário criado com sucesso",
+                    "usuario": {
+                        "id": usuario.id,
+                        "nome": usuario.nome,
+                        "email": usuario.email,
+                        "telefone": usuario.telefone,
+                        "is_admin": usuario.is_admin,
+                    },
+                }
+            ),
+            201,
+        )
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
+
+
+# LOGIN
+@auth_routes.route("/login", methods=["POST"])
+def login():
+    try:
+        data = request.get_json()
+        usuario = login_service(data["email"], data["senha"])
+        return (
+            jsonify(
+                {
+                    "mensagem": "Login realizado com sucesso",
+                    "usuario": {
+                        "id": usuario.id,
+                        "nome": usuario.nome,
+                        "email": usuario.email,
+                        "telefone": usuario.telefone,
+                        "is_admin": usuario.is_admin,
+                    },
+                }
+            ),
+            200,
+        )
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 401
+
+
+#  RECUPERAÇÃO DE SENHA
+@auth_routes.route("/recuperar", methods=["POST"])
+def recuperar_senha():
+    try:
+        data = request.get_json()
+        usuario = recuperar_senha_service(data.get("email"), data.get("nova_senha"))
+        return jsonify({"mensagem": "Senha atualizada com sucesso"}), 200
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
+
+
+@auth_routes.route("/editar", methods=["PUT"])
+def editar_perfil():
+    try:
+        data = request.get_json()
+        usuario = editar_perfil_service(
+            email_atual=data.get("email_atual"),
+            nome=data.get("nome"),
+            novo_email=data.get("novo_email"),
+            novo_telefone=data.get("novo_telefone"),
+            nova_senha=data.get("nova_senha"),
+        )
+        return (
+            jsonify(
+                {
+                    "mensagem": "Perfil atualizado com sucesso",
+                    "usuario": {
+                        "id": usuario.id,
+                        "nome": usuario.nome,
+                        "email": usuario.email,
+                        "telefone": usuario.telefone,
+                        "is_admin": usuario.is_admin,
+                    },
+                }
+            ),
+            200,
+        )
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
