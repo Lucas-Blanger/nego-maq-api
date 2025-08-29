@@ -59,7 +59,7 @@ def recomendacoes(produto_id):
         )
         .join(Evento, Evento.produto_id == Produto.id)
         .filter(
-            Produto.categoria_id == produto.categoria_id,
+            Produto.categoria == produto.categoria,
             Produto.id != produto_id,
             Evento.tipo_evento == "compra",
         )
