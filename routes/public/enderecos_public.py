@@ -1,45 +1,35 @@
 from flask import Blueprint, request, jsonify
-from database.models import db, Endereco, Usuario
-import uuid
+from services.public.endereco_service import (
+    criar_endereco as criar_endereco_service,
+    listar_enderecos_usuario as listar_enderecos_usuario_service,
+    obter_endereco as obter_endereco_service,
+)
 
 public_enderecos_routes = Blueprint("enderecos_public", __name__)
+
+# CRIAR ENDEREÇO
 
 
 # Criar um novo endereço para o usuário
 @public_enderecos_routes.route("/usuarios/<usuario_id>/enderecos", methods=["POST"])
 def criar_endereco(usuario_id):
-    data = request.get_json() or {}
-
-    campos_obrigatorios = ["cep", "logradouro", "numero", "bairro", "cidade", "estado"]
-    for campo in campos_obrigatorios:
-        if campo not in data:
-            return jsonify({"error": f"Campo obrigatório {campo} não informado"}), 400
-
-    endereco = Endereco(
-        usuario_id=usuario_id,
-        cep=data["cep"],
-        logradouro=data["logradouro"],
-        numero=data["numero"],
-        complemento=data.get("complemento"),
-        bairro=data["bairro"],
-        cidade=data["cidade"],
-        estado=data["estado"],
-    )
-    db.session.add(endereco)
-    db.session.commit()
-
-    return (
-        jsonify(
-            {"mensagem": "Endereço criado com sucesso", "endereco_id": endereco.id}
-        ),
-        201,
-    )
+    try:
+        data = request.get_json() or {}
+        endereco = criar_endereco_service(usuario_id, data)
+        return (
+            jsonify(
+                {"mensagem": "Endereço criado com sucesso", "endereco_id": endereco.id}
+            ),
+            201,
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
 
 # Listar endereços de um usuário
 @public_enderecos_routes.route("/usuarios/<usuario_id>/enderecos", methods=["GET"])
 def listar_enderecos_usuario(usuario_id):
-    enderecos = Endereco.query.filter_by(usuario_id=usuario_id).all()
+    enderecos = listar_enderecos_usuario_service(usuario_id)
     resultado = [
         {
             "id": e.id,
@@ -59,7 +49,7 @@ def listar_enderecos_usuario(usuario_id):
 # Obter detalhes de um endereço específico
 @public_enderecos_routes.route("/enderecos/<endereco_id>", methods=["GET"])
 def obter_endereco(endereco_id):
-    endereco = Endereco.query.get(endereco_id)
+    endereco = obter_endereco_service(endereco_id)
     if not endereco:
         return jsonify({"error": "Endereço não encontrado"}), 404
 
