@@ -11,5 +11,11 @@ class ItemPedido(db.Model):
     quantidade = db.Column(db.Integer, nullable=False, default=1)
     preco_unitario = db.Column(db.Numeric(10, 2), nullable=False)
 
+    # Campos para cálculo de frete
+    peso = db.Column(db.Numeric(10, 2), nullable=False)
+    comprimento = db.Column(db.Numeric(10, 2), nullable=False)
+    altura = db.Column(db.Numeric(10, 2), nullable=False)
+    largura = db.Column(db.Numeric(10, 2), nullable=False)
+
     pedido = db.relationship("Pedido", backref=db.backref("itens", lazy=True))
     produto = db.relationship("Produto", backref=db.backref("itens_pedido", lazy=True))

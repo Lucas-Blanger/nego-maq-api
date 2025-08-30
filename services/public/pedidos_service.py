@@ -6,17 +6,18 @@ from database import db
 
 class PedidoService:
 
-    # Cria um novo pedido com itens
     @staticmethod
+    # Cria um novo pedido com itens
     def criar_pedido(data):
         usuario_id = data.get("usuario_id")
+        endereco_id = data.get("endereco_id")
         itens = data.get("itens", [])
 
         if not itens:
             raise ValueError("O pedido precisa ter ao menos um item")
 
-        # Cria o pedido com valor inicial 0
-        pedido = Pedido(usuario_id=usuario_id, valor_total=0)
+        # Cria o pedido já com endereco_id
+        pedido = Pedido(usuario_id=usuario_id, endereco_id=endereco_id, valor_total=0)
         db.session.add(pedido)
         db.session.flush()
 
@@ -37,9 +38,13 @@ class PedidoService:
                     produto_id=produto.id,
                     quantidade=quantidade,
                     preco_unitario=produto.preco,
+                    peso=item.get("peso", 0),
+                    comprimento=item.get("comprimento", 0),
+                    altura=item.get("altura", 0),
+                    largura=item.get("largura", 0),
                 )
             )
-        # Atualiza valor total do pedido
+
         pedido.valor_total = total
         db.session.commit()
 
