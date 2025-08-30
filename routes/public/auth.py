@@ -86,7 +86,7 @@ def editar_perfil():
         usuario = editar_perfil_service(
             email_atual=data.get("email_atual"),
             nome=data.get("nome"),
-            sbrenome=data.get("sobrenome"),
+            novo_sobrenome=data.get("sobrenome"),
             novo_email=data.get("novo_email"),
             novo_telefone=data.get("novo_telefone"),
             nova_senha=data.get("nova_senha"),
