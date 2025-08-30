@@ -16,6 +16,7 @@ def registrar():
         data = request.get_json()
         usuario = registrar_service(
             nome=data["nome"],
+            sobrenome=data["sobrenome"],
             email=data["email"],
             telefone=data["telefone"],
             senha=data["senha"],
@@ -28,6 +29,7 @@ def registrar():
                     "usuario": {
                         "id": usuario.id,
                         "nome": usuario.nome,
+                        "sobrenome": usuario.sobrenome,
                         "email": usuario.email,
                         "telefone": usuario.telefone,
                         "is_admin": usuario.is_admin,
@@ -53,6 +55,7 @@ def login():
                     "usuario": {
                         "id": usuario.id,
                         "nome": usuario.nome,
+                        "sobrenome": usuario.sobrenome,
                         "email": usuario.email,
                         "telefone": usuario.telefone,
                         "is_admin": usuario.is_admin,
@@ -83,6 +86,7 @@ def editar_perfil():
         usuario = editar_perfil_service(
             email_atual=data.get("email_atual"),
             nome=data.get("nome"),
+            sbrenome=data.get("sobrenome"),
             novo_email=data.get("novo_email"),
             novo_telefone=data.get("novo_telefone"),
             nova_senha=data.get("nova_senha"),
@@ -94,6 +98,7 @@ def editar_perfil():
                     "usuario": {
                         "id": usuario.id,
                         "nome": usuario.nome,
+                        "sobrenome": usuario.sobrenome,
                         "email": usuario.email,
                         "telefone": usuario.telefone,
                         "is_admin": usuario.is_admin,

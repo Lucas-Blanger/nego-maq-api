@@ -13,7 +13,9 @@ def seed():
 
         # Criar usuário admin
         if not Usuario.query.filter_by(email="admin@loja.com").first():
-            admin = Usuario(nome="Admin", email="admin@loja.com", is_admin=True)
+            admin = Usuario(
+                nome="Admin", sobrenome="admin", email="admin@loja.com", is_admin=True
+            )
             admin.set_senha("admin123")
             db.session.add(admin)
 

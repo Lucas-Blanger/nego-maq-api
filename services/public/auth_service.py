@@ -3,12 +3,18 @@ from database.models import Usuario
 
 
 # Registra um novo usuário
-def registrar(nome, email, telefone, senha, is_admin=False):
+def registrar(nome, sobrenome, email, telefone, senha, is_admin=False):
     """Registra um novo usuário"""
     if Usuario.query.filter_by(email=email).first():
         raise ValueError("Email já cadastrado")
 
-    usuario = Usuario(nome=nome, email=email, telefone=telefone, is_admin=is_admin)
+    usuario = Usuario(
+        nome=nome,
+        sobrenome=sobrenome,
+        email=email,
+        telefone=telefone,
+        is_admin=is_admin,
+    )
     usuario.set_senha(senha)
     db.session.add(usuario)
     db.session.commit()
@@ -37,7 +43,12 @@ def recuperar_senha(email, nova_senha):
 
 # Edita o perfil do usuário
 def editar_perfil(
-    email_atual, nome=None, novo_email=None, novo_telefone=None, nova_senha=None
+    email_atual,
+    nome=None,
+    novo_sobrenome=None,
+    novo_email=None,
+    novo_telefone=None,
+    nova_senha=None,
 ):
     """Atualiza dados do usuário"""
     usuario = Usuario.query.filter_by(email=email_atual).first()
@@ -46,6 +57,9 @@ def editar_perfil(
 
     if nome:
         usuario.nome = nome
+
+    if novo_sobrenome:
+        usuario.sobrenome = novo_sobrenome
 
     if novo_email:
         if Usuario.query.filter_by(email=novo_email).first():
