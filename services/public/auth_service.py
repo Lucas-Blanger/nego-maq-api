@@ -44,7 +44,7 @@ def recuperar_senha(email, nova_senha):
 # Edita o perfil do usuário
 def editar_perfil(
     email_atual,
-    nome=None,
+    novo_nome=None,
     novo_sobrenome=None,
     novo_email=None,
     novo_telefone=None,
@@ -55,8 +55,8 @@ def editar_perfil(
     if not usuario:
         raise ValueError("Usuário não encontrado")
 
-    if nome:
-        usuario.nome = nome
+    if novo_nome:
+        usuario.nome = novo_nome
 
     if novo_sobrenome:
         usuario.sobrenome = novo_sobrenome
