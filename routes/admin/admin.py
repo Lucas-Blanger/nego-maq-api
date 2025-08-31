@@ -13,21 +13,9 @@ from services.admin.admin_service import (
     get_taxa_conversao,
 )
 from datetime import datetime
+from utils.auth import admin_required
 
 admin_routes = Blueprint("admin", __name__, url_prefix="/admin")
-
-
-# Função para verificar o token de autenticação do admin
-def verificar_token():
-    token = request.headers.get("Authorization")
-    if not token:
-        print("Token ausente")
-        raise PermissionError("Token ausente")
-    if token and token.startswith("Bearer "):
-        token = token.split(" ")[1]
-    if token != ADMIN_TOKEN:
-        raise PermissionError("Não autorizado")
-    return True
 
 
 # ROTAS DE PRODUTOS
@@ -35,9 +23,9 @@ def verificar_token():
 
 # Adicionar um novo produto
 @admin_routes.route("/produtos", methods=["POST"])
+@admin_required
 def adicionar_produto_route():
     try:
-        verificar_token()
         data = request.json
         produto = adicionar_produto_service(data)
         return jsonify({"mensagem": "Produto adicionado", "id": produto.id}), 201
@@ -47,9 +35,9 @@ def adicionar_produto_route():
 
 # Deletar um produto existente
 @admin_routes.route("/produtos/<produto_id>", methods=["DELETE"])
+@admin_required
 def deletar_produto_route(produto_id):
     try:
-        verificar_token()
         deletar_produto_service(produto_id)
         return jsonify({"mensagem": "Produto removido"}), 200
     except (ValueError, PermissionError) as e:
@@ -58,9 +46,9 @@ def deletar_produto_route(produto_id):
 
 # Atualizar os dados de um produto
 @admin_routes.route("/produtos/<produto_id>", methods=["PUT"])
+@admin_required
 def atualizar_produto_route(produto_id):
     try:
-        verificar_token()
         data = request.json
         atualizar_produto_service(produto_id, data)
         return (
@@ -75,9 +63,9 @@ def atualizar_produto_route(produto_id):
 
 # Atualizar o estoque de um produto
 @admin_routes.route("/estoque/<produto_id>", methods=["PUT"])
+@admin_required
 def atualizar_estoque_route(produto_id):
     try:
-        verificar_token()
         data = request.json
         atualizar_estoque_service(produto_id, data.get("estoque"))
         return (
@@ -99,9 +87,9 @@ def atualizar_estoque_route(produto_id):
 
 # Criar promoção para um produto
 @admin_routes.route("/produto/promocao/<int:produto_id>", methods=["POST"])
+@admin_required
 def criar_promocao_route(produto_id):
     try:
-        verificar_token()
         data = request.json
         criar_promocao_service(produto_id, data.get("desconto_percentual"))
         return jsonify({"mensagem": "Promoção criada com sucesso"}), 201
@@ -111,9 +99,9 @@ def criar_promocao_route(produto_id):
 
 # Remover promoção de um produto
 @admin_routes.route("/produto/promocao/<int:produto_id>", methods=["DELETE"])
+@admin_required
 def remover_promocao_route(produto_id):
     try:
-        verificar_token()
         remover_promocao_service(produto_id)
         return jsonify({"mensagem": "Promoção removida com sucesso"}), 200
     except (ValueError, PermissionError) as e:
@@ -125,9 +113,9 @@ def remover_promocao_route(produto_id):
 
 # Retorna estatísticas para o painel do admin
 @admin_routes.route("/dashboard", methods=["GET"])
+@admin_required
 def dashboard_data():
     try:
-        verificar_token()
         return jsonify(
             {
                 "top_vendidos": get_top_produtos_vendidos(),

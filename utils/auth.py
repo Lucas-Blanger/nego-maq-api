@@ -1,6 +1,6 @@
+from functools import wraps
 from flask import request, jsonify
 from instance.config import ADMIN_TOKEN
-from functools import wraps
 
 
 def admin_required(f):
