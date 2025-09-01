@@ -7,26 +7,16 @@ from services.admin.admin_pedidos_service import (
     deletar_item as deletar_item_service,
     atualizar_transacao as atualizar_transacao_service,
 )
-from instance.config import ADMIN_TOKEN
+from utils.auth import admin_required
 
 admin_pedidos_routes = Blueprint("admin_pedidos", __name__, url_prefix="/admin_pedidos")
-
-
-# Função para verificar se o token do admin é válido
-def verificar_token():
-    token = request.headers.get("Authorization")
-    if token and token.startswith("Bearer "):
-        token = token.split(" ")[1]
-    if token != ADMIN_TOKEN:
-        raise PermissionError("Não autorizado")
-    return True
-
 
 # PEDIDOS
 
 
 # Listar todos os pedidos cadastrados
 @admin_pedidos_routes.route("/pedidos", methods=["GET"])
+@admin_required
 def listar_pedidos():
     try:
         verificar_token()
@@ -38,6 +28,7 @@ def listar_pedidos():
 
 # Atualizar informações de um pedido específico
 @admin_pedidos_routes.route("/pedidos/<pedido_id>", methods=["PUT"])
+@admin_required
 def atualizar_pedido(pedido_id):
     try:
         verificar_token()
@@ -52,6 +43,7 @@ def atualizar_pedido(pedido_id):
 
 # Deletar um pedido específico
 @admin_pedidos_routes.route("/pedidos/<pedido_id>", methods=["DELETE"])
+@admin_required
 def deletar_pedido(pedido_id):
     try:
         verificar_token()
@@ -68,6 +60,7 @@ def deletar_pedido(pedido_id):
 
 # Atualizar um item dentro de um pedido
 @admin_pedidos_routes.route("/itens/<item_id>", methods=["PUT"])
+@admin_required
 def atualizar_item(item_id):
     try:
         verificar_token()
@@ -82,6 +75,7 @@ def atualizar_item(item_id):
 
 # Deletar um item de um pedido
 @admin_pedidos_routes.route("/itens/<item_id>", methods=["DELETE"])
+@admin_required
 def deletar_item(item_id):
     try:
         verificar_token()
@@ -98,6 +92,7 @@ def deletar_item(item_id):
 
 # Atualizar dados de uma transação relacionada a um pedido
 @admin_pedidos_routes.route("/transacoes/<transacao_id>", methods=["PUT"])
+@admin_required
 def atualizar_transacao(transacao_id):
     try:
         verificar_token()

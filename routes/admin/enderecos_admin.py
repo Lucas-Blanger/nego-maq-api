@@ -4,28 +4,18 @@ from services.admin.admin_enderecos_service import (
     atualizar_endereco as atualizar_endereco_service,
     deletar_endereco as deletar_endereco_service,
 )
-from instance.config import ADMIN_TOKEN
+from utils.auth import admin_required
 
 admin_enderecos_routes = Blueprint(
     "admin_enderecos", __name__, url_prefix="/admin_enderecos"
 )
-
-
-# Função de autenticação via token (somente admin pode acessar essas rotas)
-def verificar_token():
-    token = request.headers.get("Authorization")
-    if token and token.startswith("Bearer "):
-        token = token.split(" ")[1]
-    if token != ADMIN_TOKEN:
-        raise PermissionError("Não autorizado")
-    return True
-
 
 # ROTAS DE ENDEREÇOS
 
 
 # Listar todos os endereços cadastrados
 @admin_enderecos_routes.route("/enderecos", methods=["GET"])
+@admin_required
 def listar_enderecos_route():
     try:
         verificar_token()
@@ -37,6 +27,7 @@ def listar_enderecos_route():
 
 # Atualizar dados de um endereço específico
 @admin_enderecos_routes.route("/enderecos/<endereco_id>", methods=["PUT"])
+@admin_required
 def atualizar_endereco_route(endereco_id):
     try:
         verificar_token()
@@ -51,6 +42,7 @@ def atualizar_endereco_route(endereco_id):
 
 # Deletar um endereço pelo ID
 @admin_enderecos_routes.route("/enderecos/<endereco_id>", methods=["DELETE"])
+@admin_required
 def deletar_endereco_route(endereco_id):
     try:
         verificar_token()
