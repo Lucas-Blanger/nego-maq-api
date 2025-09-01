@@ -1,6 +1,7 @@
 import uuid
 from app import create_app
-from database.models import db, Usuario, Produto
+from database import db
+from database.models import Usuario, Produto
 
 
 # rode python -m seeders.seed para popular o banco de dados (SOMENTE PARA DESENVOLVIMENTO)

@@ -11,7 +11,15 @@ services:
       - .env
     depends_on:
       - db
-    command: sh /app/entrypoint.sh
+    command: >
+      sh -c "
+      echo 'Aguardando o banco de dados subir...' &&
+      sleep 5 &&
+      echo 'Rodando seed...' &&
+      python -m seeders.seed &&
+      echo 'Iniciando Gunicorn...' &&
+      gunicorn -b 0.0.0.0:5000 app:app
+      "
 
   db:
     image: mysql:8.0
