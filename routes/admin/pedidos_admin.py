@@ -19,7 +19,6 @@ admin_pedidos_routes = Blueprint("admin_pedidos", __name__, url_prefix="/admin_p
 @admin_required
 def listar_pedidos():
     try:
-        verificar_token()
         resultado = listar_pedidos_service()
         return jsonify(resultado), 200
     except PermissionError as e:
@@ -31,7 +30,6 @@ def listar_pedidos():
 @admin_required
 def atualizar_pedido(pedido_id):
     try:
-        verificar_token()
         data = request.get_json() or {}
         atualizar_pedido_service(pedido_id, data)
         return jsonify({"mensagem": "Pedido atualizado com sucesso"}), 200
@@ -46,7 +44,6 @@ def atualizar_pedido(pedido_id):
 @admin_required
 def deletar_pedido(pedido_id):
     try:
-        verificar_token()
         deletar_pedido_service(pedido_id)
         return jsonify({"mensagem": "Pedido excluído"}), 200
     except PermissionError as e:
@@ -63,7 +60,6 @@ def deletar_pedido(pedido_id):
 @admin_required
 def atualizar_item(item_id):
     try:
-        verificar_token()
         data = request.get_json() or {}
         atualizar_item_service(item_id, data)
         return jsonify({"mensagem": "Item atualizado"}), 200
@@ -78,7 +74,6 @@ def atualizar_item(item_id):
 @admin_required
 def deletar_item(item_id):
     try:
-        verificar_token()
         deletar_item_service(item_id)
         return jsonify({"mensagem": "Item removido"}), 200
     except PermissionError as e:
@@ -95,7 +90,6 @@ def deletar_item(item_id):
 @admin_required
 def atualizar_transacao(transacao_id):
     try:
-        verificar_token()
         data = request.get_json() or {}
         atualizar_transacao_service(transacao_id, data)
         return jsonify({"mensagem": "Transação atualizada"}), 200

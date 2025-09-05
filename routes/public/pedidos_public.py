@@ -1,22 +1,13 @@
-from flask import Flask, request, jsonify, Blueprint
+from flask import Blueprint, request, jsonify
 from services.public.pedidos_service import PedidoService
 from services.public.pagamentos_service import PagamentoService
 
-app = Flask(__name__)
 public_routes_pedidos = Blueprint("pedidos_public", __name__)
-
-
-# PEDIDOS PÚBLICOS
 
 
 # CRIAR UM NOVO PEDIDO
 @public_routes_pedidos.route("/pedidos", methods=["POST"])
 def criar_pedido():
-    """
-    Cria um novo pedido.
-    Espera JSON com os dados do pedido (ex.: usuário, produtos, quantidades, valores).
-    Retorna o pedido criado em formato JSON.
-    """
     try:
         data = request.json
         pedido = PedidoService.criar_pedido(data)
@@ -25,17 +16,15 @@ def criar_pedido():
         return jsonify({"erro": str(e)}), 400
 
 
-# Resumo do pedido para frete
+# RESUMO DO FRETE
 @public_routes_pedidos.route("/pedidos/<pedido_id>/frete/resumo", methods=["GET"])
 def resumo_frete(pedido_id):
-    """
-    Retorna os dados do pedido necessários para calcular frete:
-    - Peso total
-    - Dimensões (comprimento, altura, largura) de cada item
-    """
     pedido = PedidoService.obter_pedido(pedido_id)
     if not pedido:
         return jsonify({"erro": "Pedido não encontrado"}), 404
+
+    if not pedido.endereco:
+        return jsonify({"erro": "Endereço do pedido não encontrado"}), 400
 
     itens = [
         {
@@ -49,7 +38,6 @@ def resumo_frete(pedido_id):
         for i in pedido.itens
     ]
 
-    # Somar peso total para facilitar a cotação
     peso_total = sum(i["peso"] * i["quantidade"] for i in itens)
 
     return jsonify(
@@ -62,16 +50,9 @@ def resumo_frete(pedido_id):
     )
 
 
-# Calcular cotação de frete via
+# COTAÇÃO DE FRETE
 @public_routes_pedidos.route("/pedidos/<pedido_id>/frete/cotacao", methods=["POST"])
 def cotacao_frete(pedido_id):
-    """
-    Recebe JSON com:
-    {
-        "cep_destino": "12345678"
-    }
-    Retorna dados formatados
-    """
     data = request.json
     cep_destino = data.get("cep_destino")
     if not cep_destino:
@@ -81,7 +62,9 @@ def cotacao_frete(pedido_id):
     if not pedido:
         return jsonify({"erro": "Pedido não encontrado"}), 404
 
-    # Preparar itens para cálculo de frete
+    if not pedido.endereco:
+        return jsonify({"erro": "Endereço do pedido não encontrado"}), 400
+
     itens = [
         {
             "peso": float(i.peso),
@@ -94,7 +77,7 @@ def cotacao_frete(pedido_id):
     ]
 
     frete_data = {
-        "cep_origem": pedido.cep_origem,
+        "cep_origem": pedido.endereco.cep,
         "cep_destino": cep_destino,
         "itens": itens,
     }
@@ -102,16 +85,9 @@ def cotacao_frete(pedido_id):
     return jsonify(frete_data), 200
 
 
-# Obter pedido
+# OBTER PEDIDO
 @public_routes_pedidos.route("/pedidos/<pedido_id>", methods=["GET"])
 def obter_pedido(pedido_id):
-    """
-    Busca um pedido específico pelo ID.
-    Retorna os dados completos do pedido, incluindo:
-    - Informações principais
-    - Itens do pedido
-    - Transações associadas
-    """
     pedido = PedidoService.obter_pedido(pedido_id)
     if not pedido:
         return jsonify({"erro": "Pedido não encontrado"}), 404
@@ -143,11 +119,9 @@ def obter_pedido(pedido_id):
     )
 
 
-# Pedidos por usuário
+# PEDIDOS POR USUÁRIO
 @public_routes_pedidos.route("/usuarios/<usuario_id>/pedidos", methods=["GET"])
 def pedidos_usuario(usuario_id):
-    # Lista todos os pedidos de um usuário específico. Retorna apenas informações resumidas (id, valor total, status).
-
     pedidos = PedidoService.listar_pedidos_usuario(usuario_id)
     return jsonify(
         [
@@ -161,18 +135,9 @@ def pedidos_usuario(usuario_id):
     )
 
 
-# Criar transação
+# CRIAR TRANSAÇÃO
 @public_routes_pedidos.route("/pedidos/<pedido_id>/transacoes", methods=["POST"])
 def criar_transacao(pedido_id):
-    """
-     #Cria uma nova transação (pagamento) vinculada a um pedido.
-    Espera JSON com:
-    {
-        "valor": <valor da transação>,
-        "metodo_pagamento": <ex.: "pix", "cartao", "boleto">
-    }
-    Retorna a transação criada.
-    """
     try:
         data = request.json or {}
         transacao = PagamentoService.criar_transacao(
@@ -183,11 +148,9 @@ def criar_transacao(pedido_id):
         return jsonify({"erro": str(e)}), 400
 
 
-# Listar transações
+# LISTAR TRANSAÇÕES
 @public_routes_pedidos.route("/pedidos/<pedido_id>/transacoes", methods=["GET"])
 def listar_transacoes(pedido_id):
-    # Lista todas as transações associadas a um pedido específico. Retorna id, valor, status e método de pagamento de cada transação.
-
     try:
         transacoes = PagamentoService.listar_transacoes(pedido_id)
         return jsonify(

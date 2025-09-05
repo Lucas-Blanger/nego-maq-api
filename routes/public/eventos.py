@@ -4,6 +4,7 @@ from services.public.evento_service import (
     top_vendas as top_vendas_service,
     recomendacoes as recomendacoes_service,
 )
+from utils.auth import token_required
 
 evento_routes = Blueprint("eventos", __name__, url_prefix="/eventos")
 
@@ -11,8 +12,10 @@ evento_routes = Blueprint("eventos", __name__, url_prefix="/eventos")
 
 
 @evento_routes.route("/registrar_evento", methods=["POST"])
-def registrar_evento():
+@token_required
+def registrar_evento(payload):
     dados = request.json
+    usuario_id = payload["id"]
     registrar_evento_service(
         usuario_id=dados.get("usuario_id"),
         produto_id=dados.get("produto_id"),

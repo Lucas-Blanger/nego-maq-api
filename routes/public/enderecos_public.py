@@ -4,6 +4,7 @@ from services.public.endereco_service import (
     listar_enderecos_usuario as listar_enderecos_usuario_service,
     obter_endereco as obter_endereco_service,
 )
+from utils.auth import token_required
 
 public_enderecos_routes = Blueprint("enderecos_public", __name__)
 
@@ -12,8 +13,12 @@ public_enderecos_routes = Blueprint("enderecos_public", __name__)
 
 # Criar um novo endereço para o usuário
 @public_enderecos_routes.route("/usuarios/<usuario_id>/enderecos", methods=["POST"])
-def criar_endereco(usuario_id):
+@token_required
+def criar_endereco(payload, usuario_id):
     try:
+        if payload["id"] != usuario_id and not payload["is_admin"]:
+            return jsonify({"erro": "Acesso não autorizado"}), 403
+
         data = request.get_json() or {}
         endereco = criar_endereco_service(usuario_id, data)
         return (
@@ -28,7 +33,11 @@ def criar_endereco(usuario_id):
 
 # Listar endereços de um usuário
 @public_enderecos_routes.route("/usuarios/<usuario_id>/enderecos", methods=["GET"])
-def listar_enderecos_usuario(usuario_id):
+@token_required
+def listar_enderecos_usuario(payload, usuario_id):
+    if payload["id"] != usuario_id and not payload["is_admin"]:
+        return jsonify({"erro": "Acesso não autorizado"}), 403
+
     enderecos = listar_enderecos_usuario_service(usuario_id)
     resultado = [
         {
@@ -48,10 +57,14 @@ def listar_enderecos_usuario(usuario_id):
 
 # Obter detalhes de um endereço específico
 @public_enderecos_routes.route("/enderecos/<endereco_id>", methods=["GET"])
-def obter_endereco(endereco_id):
+@token_required
+def obter_endereco(payload, endereco_id):
     endereco = obter_endereco_service(endereco_id)
     if not endereco:
         return jsonify({"error": "Endereço não encontrado"}), 404
+
+    if payload["id"] != endereco.usuario_id and not payload["is_admin"]:
+        return jsonify({"erro": "Acesso não autorizado"}), 403
 
     return (
         jsonify(
