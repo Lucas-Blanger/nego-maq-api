@@ -1,5 +1,6 @@
 from database import db
 from database.models import Usuario
+from utils.jwt_utils import gerar_token
 
 
 # Registra um novo usuário
@@ -18,14 +19,16 @@ def registrar(nome, sobrenome, email, telefone, senha, is_admin=False):
     usuario.set_senha(senha)
     db.session.add(usuario)
     db.session.commit()
-    return usuario
+    token = gerar_token(usuario)
+    return usuario, token
 
 
 # Faz login do usuário
 def login(email, senha):
     usuario = Usuario.query.filter_by(email=email).first()
     if usuario and usuario.checar_senha(senha):
-        return usuario
+        token = gerar_token(usuario)
+        return usuario, token
     raise ValueError("Credenciais inválidas")
 
 
