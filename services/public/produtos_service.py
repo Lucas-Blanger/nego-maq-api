@@ -4,7 +4,6 @@ from database.models import Produto
 class ProdutoService:
 
     # Retorna todos os produtos
-
     @staticmethod
     def listar_todos():
         return Produto.query.all()
@@ -16,7 +15,7 @@ class ProdutoService:
 
     # Lista produtos com maior estoque (limitado por default a 10)
     @staticmethod
-    def listar_top_estoque(limit=10):
+    def listar_top_estoque(limit=5):
         return Produto.query.order_by(Produto.estoque.desc()).limit(limit).all()
 
     # Busca produtos pelo nome (case-insensitive)
