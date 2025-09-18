@@ -1,4 +1,5 @@
 from database.models import Produto
+from sqlalchemy import desc
 
 
 class ProdutoService:
@@ -22,3 +23,8 @@ class ProdutoService:
     @staticmethod
     def buscar_por_nome(termo):
         return Produto.query.filter(Produto.nome.ilike(f"%{termo}%")).all()
+
+    # Retorna os últimos produtos adicionado
+    @staticmethod
+    def listar_ultimos_adicionados(limit=5):
+        return Produto.query.order_by(desc(Produto.created_at)).limit(limit).all()

@@ -57,10 +57,33 @@ def buscar_produto_por_id(id):
     )
 
 
-# Lista os 10 produtos com maior estoque (para a página inicial)
+# Lista os 5 produtos com maior estoque (para a página inicial)
 @public_routes.route("/produtos/home", methods=["GET"])
 def listar_top_estoque():
     produtos = ProdutoService.listar_top_estoque()
+    return jsonify(
+        [
+            {
+                "id": p.id,
+                "nome": p.nome,
+                "descricao": p.descricao,
+                "categoria": p.categoria,
+                "preco": float(p.preco),
+                "img": p.img,
+                "estoque": p.estoque,
+            }
+            for p in produtos
+        ]
+    )
+
+
+# Lista os 5 últimos produtos adicionados
+@public_routes.route("/produtos/novidades", methods=["GET"])
+def listar_ultimos_produtos_adicionados():
+    produtos = ProdutoService.listar_ultimos_adicionados()
+    if not produtos:
+        return jsonify({"mensagem": "Nenhum produto encontrado"}), 404
+
     return jsonify(
         [
             {
