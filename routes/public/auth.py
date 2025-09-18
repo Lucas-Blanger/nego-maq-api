@@ -5,6 +5,7 @@ from services.public.auth_service import (
     recuperar_senha as recuperar_senha_service,
     editar_perfil as editar_perfil_service,
 )
+from utils.auth import token_required
 
 auth_routes = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -14,7 +15,7 @@ auth_routes = Blueprint("auth", __name__, url_prefix="/auth")
 def registrar():
     try:
         data = request.get_json()
-        usuario = registrar_service(
+        usuario, token = registrar_service(
             nome=data["nome"],
             sobrenome=data["sobrenome"],
             email=data["email"],
@@ -26,6 +27,7 @@ def registrar():
             jsonify(
                 {
                     "mensagem": "Usuário criado com sucesso",
+                    "token": token,
                     "usuario": {
                         "id": usuario.id,
                         "nome": usuario.nome,
@@ -47,11 +49,12 @@ def registrar():
 def login():
     try:
         data = request.get_json()
-        usuario = login_service(data["email"], data["senha"])
+        usuario, token = login_service(data["email"], data["senha"])
         return (
             jsonify(
                 {
                     "mensagem": "Login realizado com sucesso",
+                    "token": token,
                     "usuario": {
                         "id": usuario.id,
                         "nome": usuario.nome,
@@ -80,11 +83,12 @@ def recuperar_senha():
 
 
 @auth_routes.route("/editar", methods=["PUT"])
-def editar_perfil():
+@token_required
+def editar_perfil(payload):
     try:
         data = request.get_json()
         usuario = editar_perfil_service(
-            email_atual=data.get("email"),
+            email_atual=payload["email"],
             novo_nome=data.get("novo_nome"),
             novo_sobrenome=data.get("novo_sobrenome"),
             novo_email=data.get("novo_email"),

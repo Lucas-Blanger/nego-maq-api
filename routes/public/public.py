@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from services.public.produtos_service import ProdutoService
 from services.public.carrinho_service import CarrinhoService
 from services.public.promocoes_service import PromocaoService
+from utils.auth import token_required
+
 
 public_routes = Blueprint("public", __name__)
 
@@ -55,10 +57,33 @@ def buscar_produto_por_id(id):
     )
 
 
-# Lista os 10 produtos com maior estoque (para a página inicial)
+# Lista os 5 produtos com maior estoque (para a página inicial)
 @public_routes.route("/produtos/home", methods=["GET"])
 def listar_top_estoque():
     produtos = ProdutoService.listar_top_estoque()
+    return jsonify(
+        [
+            {
+                "id": p.id,
+                "nome": p.nome,
+                "descricao": p.descricao,
+                "categoria": p.categoria,
+                "preco": float(p.preco),
+                "img": p.img,
+                "estoque": p.estoque,
+            }
+            for p in produtos
+        ]
+    )
+
+
+# Lista os 5 últimos produtos adicionados
+@public_routes.route("/produtos/novidades", methods=["GET"])
+def listar_ultimos_produtos_adicionados():
+    produtos = ProdutoService.listar_ultimos_adicionados()
+    if not produtos:
+        return jsonify({"mensagem": "Nenhum produto encontrado"}), 404
+
     return jsonify(
         [
             {
@@ -104,9 +129,11 @@ def buscar_produtos_por_nome():
 
 # Adiciona um produto ao carrinho
 @public_routes.route("/carrinho/adicionar/<string:produto_id>", methods=["POST"])
-def adicionar_ao_carrinho(produto_id):
+@token_required
+def adicionar_ao_carrinho(payload, produto_id):
+    usuario_id = payload["id"]
     try:
-        carrinho = CarrinhoService.adicionar(produto_id)
+        carrinho = CarrinhoService.adicionar(usuario_id, produto_id)
         return jsonify(
             {
                 "mensagem": "Produto adicionado",
@@ -121,9 +148,11 @@ def adicionar_ao_carrinho(produto_id):
 
 # Finaliza a compra (gera link do WhatsApp)
 @public_routes.route("/finalizar", methods=["GET"])
-def finalizar_compra():
+@token_required
+def finalizar_compra(payload):
+    usuario_id = payload["id"]
     try:
-        link = CarrinhoService.finalizar()
+        link = CarrinhoService.finalizar(usuario_id)
         return jsonify({"whatsapp_url": link})
     except Exception as e:
         return jsonify({"erro": str(e)}), 400

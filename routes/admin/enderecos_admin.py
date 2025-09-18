@@ -18,7 +18,6 @@ admin_enderecos_routes = Blueprint(
 @admin_required
 def listar_enderecos_route():
     try:
-        verificar_token()
         resultado = listar_enderecos_service()
         return jsonify(resultado), 200
     except PermissionError as e:
@@ -30,7 +29,6 @@ def listar_enderecos_route():
 @admin_required
 def atualizar_endereco_route(endereco_id):
     try:
-        verificar_token()
         data = request.get_json() or {}
         atualizar_endereco_service(endereco_id, data)
         return jsonify({"mensagem": "Endereço atualizado com sucesso"}), 200
@@ -45,7 +43,6 @@ def atualizar_endereco_route(endereco_id):
 @admin_required
 def deletar_endereco_route(endereco_id):
     try:
-        verificar_token()
         deletar_endereco_service(endereco_id)
         return jsonify({"mensagem": "Endereço excluído"}), 200
     except PermissionError as e:

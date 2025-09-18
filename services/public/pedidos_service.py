@@ -1,6 +1,8 @@
 from database.models.pedido import Pedido
 from database.models.item_pedido import ItemPedido
 from database.models.produto import Produto
+from database.models.usuario import Usuario
+from database.models.endereco import Endereco
 from database import db
 
 
@@ -10,14 +12,23 @@ class PedidoService:
     # Cria um novo pedido com itens
     def criar_pedido(data):
         usuario_id = data.get("usuario_id")
-        endereco_id = data.get("endereco_id")
         itens = data.get("itens", [])
 
         if not itens:
             raise ValueError("O pedido precisa ter ao menos um item")
 
-        # Cria o pedido já com endereco_id
-        pedido = Pedido(usuario_id=usuario_id, endereco_id=endereco_id, valor_total=0)
+        # Buscar usuário
+        usuario = Usuario.query.get(usuario_id)
+        if not usuario:
+            raise ValueError("Usuário não encontrado")
+
+        # Puxar o endereço principal do usuário (ou o primeiro disponível)
+        endereco = Endereco.query.filter_by(usuario_id=usuario_id).first()
+        if not endereco:
+            raise ValueError("Usuário não possui endereço cadastrado")
+
+        # Cria o pedido com endereco_id do usuário
+        pedido = Pedido(usuario_id=usuario_id, endereco_id=endereco.id, valor_total=0)
         db.session.add(pedido)
         db.session.flush()
 

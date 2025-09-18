@@ -1,5 +1,6 @@
 import uuid
 from database import db
+from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -11,6 +12,11 @@ class Usuario(db.Model):
     telefone = db.Column(db.String(15), nullable=True)
     senha_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     def set_senha(self, senha):
         self.senha_hash = generate_password_hash(senha)
