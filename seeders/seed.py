@@ -20,6 +20,14 @@ def seed():
             admin.set_senha("admin123")
             db.session.add(admin)
 
+        # Criar usuário normal
+        if not Usuario.query.filter_by(email="teste@teste.com").first():
+            usuario = Usuario(
+                nome="Teste", sobrenome="Teste", email="teste@teste.com", is_admin=False
+            )
+            usuario.set_senha("teste")
+            db.session.add(usuario)
+
         # Lista de produtos (3 por categoria)
         produtos = [
             # FACAS
