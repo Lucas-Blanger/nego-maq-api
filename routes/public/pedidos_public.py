@@ -1,12 +1,14 @@
 from flask import Blueprint, request, jsonify
 from services.public.pedidos_service import PedidoService
 from services.public.pagamentos_service import PagamentoService
+from utils.auth import token_required
 
 public_routes_pedidos = Blueprint("pedidos_public", __name__)
 
 
 # CRIAR UM NOVO PEDIDO
 @public_routes_pedidos.route("/pedidos", methods=["POST"])
+@token_required
 def criar_pedido():
     try:
         data = request.json
@@ -18,6 +20,7 @@ def criar_pedido():
 
 # RESUMO DO FRETE
 @public_routes_pedidos.route("/pedidos/<pedido_id>/frete/resumo", methods=["GET"])
+@token_required
 def resumo_frete(pedido_id):
     pedido = PedidoService.obter_pedido(pedido_id)
     if not pedido:
@@ -52,6 +55,7 @@ def resumo_frete(pedido_id):
 
 # COTAÇÃO DE FRETE
 @public_routes_pedidos.route("/pedidos/<pedido_id>/frete/cotacao", methods=["POST"])
+@token_required
 def cotacao_frete(pedido_id):
     data = request.json
     cep_destino = data.get("cep_destino")
@@ -87,6 +91,7 @@ def cotacao_frete(pedido_id):
 
 # OBTER PEDIDO
 @public_routes_pedidos.route("/pedidos/<pedido_id>", methods=["GET"])
+@token_required
 def obter_pedido(pedido_id):
     pedido = PedidoService.obter_pedido(pedido_id)
     if not pedido:
@@ -121,6 +126,7 @@ def obter_pedido(pedido_id):
 
 # PEDIDOS POR USUÁRIO
 @public_routes_pedidos.route("/usuarios/<usuario_id>/pedidos", methods=["GET"])
+@token_required
 def pedidos_usuario(usuario_id):
     pedidos = PedidoService.listar_pedidos_usuario(usuario_id)
     return jsonify(
@@ -137,6 +143,7 @@ def pedidos_usuario(usuario_id):
 
 # CRIAR TRANSAÇÃO
 @public_routes_pedidos.route("/pedidos/<pedido_id>/transacoes", methods=["POST"])
+@token_required
 def criar_transacao(pedido_id):
     try:
         data = request.json or {}
@@ -150,6 +157,7 @@ def criar_transacao(pedido_id):
 
 # LISTAR TRANSAÇÕES
 @public_routes_pedidos.route("/pedidos/<pedido_id>/transacoes", methods=["GET"])
+@token_required
 def listar_transacoes(pedido_id):
     try:
         transacoes = PagamentoService.listar_transacoes(pedido_id)
