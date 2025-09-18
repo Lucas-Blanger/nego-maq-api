@@ -54,7 +54,6 @@ def deletar_pedido(pedido_id):
 
 # ITENS
 
-
 # Atualizar um item dentro de um pedido
 @admin_pedidos_routes.route("/itens/<item_id>", methods=["PUT"])
 @admin_required

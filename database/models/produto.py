@@ -1,5 +1,6 @@
 import uuid
 from database import db
+from datetime import datetime
 
 
 class Produto(db.Model):
@@ -10,3 +11,8 @@ class Produto(db.Model):
     preco = db.Column(db.Numeric(10, 2), nullable=False)
     img = db.Column(db.Text, nullable=True)
     estoque = db.Column(db.Integer, nullable=False, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
