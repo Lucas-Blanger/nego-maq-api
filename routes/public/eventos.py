@@ -32,7 +32,7 @@ def top_vendas():
 
 
 # RECOMENDAÇÕES DE PRODUTOS
-@evento_routes.route("/recomendacoes/<int:produto_id>", methods=["GET"])
+@evento_routes.route("/recomendacoes/<produto_id>", methods=["GET"])
 def recomendacoes(produto_id):
     resultados = recomendacoes_service(produto_id)
     return jsonify(resultados)
