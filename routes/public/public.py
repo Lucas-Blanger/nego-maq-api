@@ -133,7 +133,8 @@ def buscar_produtos_por_nome():
 def adicionar_ao_carrinho(payload, produto_id):
     usuario_id = payload["id"]
     try:
-        carrinho = CarrinhoService.adicionar(usuario_id, produto_id)
+        carrinho_service_instance = CarrinhoService()
+        carrinho = carrinho_service_instance.adicionar(usuario_id, produto_id)
         return jsonify(
             {
                 "mensagem": "Produto adicionado",

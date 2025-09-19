@@ -86,7 +86,7 @@ def atualizar_estoque_route(produto_id):
 
 
 # Criar promoção para um produto
-@admin_routes.route("/produto/promocao/<int:produto_id>", methods=["POST"])
+@admin_routes.route("/produto/promocao/<produto_id>", methods=["POST"])
 @admin_required
 def criar_promocao_route(produto_id):
     try:
@@ -98,7 +98,7 @@ def criar_promocao_route(produto_id):
 
 
 # Remover promoção de um produto
-@admin_routes.route("/produto/promocao/<int:produto_id>", methods=["DELETE"])
+@admin_routes.route("/produto/promocao/<produto_id>", methods=["DELETE"])
 @admin_required
 def remover_promocao_route(produto_id):
     try:
