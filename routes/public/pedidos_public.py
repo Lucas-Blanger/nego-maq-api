@@ -9,7 +9,7 @@ public_routes_pedidos = Blueprint("pedidos_public", __name__)
 # CRIAR UM NOVO PEDIDO
 @public_routes_pedidos.route("/pedidos", methods=["POST"])
 @token_required
-def criar_pedido():
+def criar_pedido(payload):
     try:
         data = request.json
         pedido = PedidoService.criar_pedido(data)

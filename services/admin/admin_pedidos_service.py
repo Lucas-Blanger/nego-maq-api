@@ -51,6 +51,9 @@ def deletar_pedido(pedido_id):
     if not pedido:
         raise ValueError("Pedido não encontrado")
 
+    # Apagar todos os itens relacionados
+    ItemPedido.query.filter_by(pedido_id=pedido_id).delete()
+
     db.session.delete(pedido)
     db.session.commit()
     return pedido

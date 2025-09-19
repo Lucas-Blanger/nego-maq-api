@@ -14,6 +14,9 @@ class PedidoService:
         usuario_id = data.get("usuario_id")
         itens = data.get("itens", [])
 
+        if not usuario_id:
+            raise ValueError("Usuário não informado")
+
         if not itens:
             raise ValueError("O pedido precisa ter ao menos um item")
 
@@ -34,10 +37,15 @@ class PedidoService:
 
         total = 0
         for item in itens:
-            produto = Produto.query.get(item["produto_id"])
+            produto_id = item.get("produto_id")
+            if not produto_id:
+                db.session.rollback()
+                raise ValueError("Produto não informado em um dos itens")
+
+            produto = Produto.query.get(produto_id)
             if not produto:
                 db.session.rollback()
-                raise ValueError(f"Produto {item['produto_id']} não encontrado")
+                raise ValueError(f"Produto {produto_id} não encontrado")
 
             quantidade = item.get("quantidade", 1)
             subtotal = produto.preco * quantidade
