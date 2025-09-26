@@ -14,9 +14,9 @@ class ProdutoService:
     def buscar_por_id(produto_id):
         return Produto.query.get(produto_id)
 
-    # Lista produtos com maior estoque (limitado por default a 10)
+    # Lista produtos com maior estoque (limitado por default a 3)
     @staticmethod
-    def listar_top_estoque(limit=5):
+    def listar_top_estoque(limit=3):
         return Produto.query.order_by(Produto.estoque.desc()).limit(limit).all()
 
     # Busca produtos pelo nome (case-insensitive)
@@ -26,5 +26,5 @@ class ProdutoService:
 
     # Retorna os últimos produtos adicionado
     @staticmethod
-    def listar_ultimos_adicionados(limit=5):
+    def listar_ultimos_adicionados(limit=3):
         return Produto.query.order_by(desc(Produto.created_at)).limit(limit).all()
