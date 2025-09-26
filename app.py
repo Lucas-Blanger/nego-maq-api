@@ -5,6 +5,7 @@ from flask_cors import CORS
 import pymysql
 from dotenv import load_dotenv
 import os
+import cloudinary
 
 load_dotenv()
 
@@ -30,6 +31,13 @@ def create_app():
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+
+    cloudinary.config(
+        cloud_name=os.getenv("CLOUDE_NAME"),
+        api_key=os.getenv("API_KEY"),
+        api_secret=os.getenv("API_SECRET"),
+        secure=True,
+    )
 
     db.init_app(app)
 

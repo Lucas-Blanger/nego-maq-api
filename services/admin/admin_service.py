@@ -2,6 +2,8 @@ from database import db
 from database.models import Produto, Promocao, Evento
 from sqlalchemy import func
 import uuid
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
 
 CATEGORIAS_VALIDAS = ["facas", "aventais", "estojos", "churrascos"]
 
@@ -10,7 +12,7 @@ CATEGORIAS_VALIDAS = ["facas", "aventais", "estojos", "churrascos"]
 
 
 # Adiciona um novo produto
-def adicionar_produto(data):
+def adicionar_produto(data, file=None):
     """Adiciona um novo produto ao catálogo"""
     categoria = data.get("categoria")
     if categoria not in CATEGORIAS_VALIDAS:
@@ -18,13 +20,16 @@ def adicionar_produto(data):
             f"Categoria inválida. Escolha entre: {', '.join(CATEGORIAS_VALIDAS)}"
         )
 
+    upload_result = cloudinary.uploader.upload(file)
+    image_url = upload_result["secure_url"]
+
     produto = Produto(
         id=str(uuid.uuid4()),
         nome=data.get("nome"),
         descricao=data.get("descricao"),
         categoria=categoria,
         preco=data.get("preco"),
-        img=data.get("img"),
+        img=image_url,
         estoque=data.get("estoque"),
     )
     db.session.add(produto)

@@ -26,11 +26,24 @@ admin_routes = Blueprint("admin", __name__, url_prefix="/admin")
 @admin_required
 def adicionar_produto_route():
     try:
-        data = request.json
-        produto = adicionar_produto_service(data)
+        file = request.files.get("img")  # se não vier, fica None
+        data = {
+            "nome": request.form.get("nome"),
+            "descricao": request.form.get("descricao"),
+            "categoria": request.form.get("categoria"),
+            "preco": request.form.get("preco"),
+            "estoque": request.form.get("estoque"),
+        }
+
+        produto = adicionar_produto_service(data, file)
+
         return jsonify({"mensagem": "Produto adicionado", "id": produto.id}), 201
+
     except (ValueError, PermissionError) as e:
-        return jsonify({"erro": str(e)}), 400 if isinstance(e, ValueError) else 403
+        return (
+            jsonify({"erro": str(e)}),
+            400 if isinstance(e, ValueError) else 403,
+        )
 
 
 # Deletar um produto existente
