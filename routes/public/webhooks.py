@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from services.public.pagamento_service import MercadoPagoService
-from services.public.pagamentos_service import PagamentoService
+from services.pagamento_service import MercadoPagoService
+from services.pagamentos_service import PagamentoService
 from database.models import Pedido, StatusPedidoEnum
 from database import db
 import logging

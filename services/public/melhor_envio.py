@@ -2,6 +2,8 @@ import os
 import requests
 import logging
 
+
+
 class MelhorEnvioService:
     def __init__(self):
         self.base_url = os.getenv("MELHOR_ENVIO_BASE_URL", "https://sandbox.melhorenvio.com.br/api/v2")
@@ -9,7 +11,8 @@ class MelhorEnvioService:
         self.headers = {
             "Authorization": f"Bearer {self.token}",
             "Accept": "application/json",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Nego Maq (contato@negomaq.com.br)"
         }
 
     def calcular_frete(self, origem_cep, destino_cep, produtos):

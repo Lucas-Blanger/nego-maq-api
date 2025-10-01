@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from services.public.melhor_envio import MelhorEnvioService
-from services.public.pagamento_service import MercadoPagoService
+from services.melhor_envio import MelhorEnvioService
+from services.pagamento_service import MercadoPagoService
 from services.public.pedidos_service import PedidoService
 from database.models import Usuario, Endereco, Produto
 from utils.auth import token_required
@@ -28,7 +28,7 @@ def calcular_frete():
             return jsonify({"erro": "Lista de produtos é obrigatória"}), 400
         
         # CEP de origem (sua empresa - Erechim/RS)
-        origem_cep = os.getenv("EMPRESA_CEP", "99700000")
+        origem_cep = os.getenv("EMPRESA_CEP", "99713253")
         
         # Instanciar serviço
         melhor_envio = MelhorEnvioService()
