@@ -1,28 +1,9 @@
 version: "3.9"
 
 services:
-  web:
-    build: .
-    ports:
-      - "5000:5000"
-    volumes:
-      - .:/app
-    env_file:
-      - .env
-    depends_on:
-      - db
-    command: >
-      sh -c "
-      echo 'Aguardando o banco de dados subir...' &&
-      sleep 5 &&
-      echo 'Rodando seed...' &&
-      python -m seeders.seed &&
-      echo 'Iniciando Gunicorn...' &&
-      gunicorn -b 0.0.0.0:5000 app:app
-      "
-
   db:
     image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: senha123
@@ -33,6 +14,31 @@ services:
       - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-psenha123"]
+      timeout: 20s
+      retries: 10
+      interval: 3s
+
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+    command: >
+      sh -c "
+      echo 'Rodando seed...' &&
+      python -m seeders.seed &&
+      echo 'Iniciando Gunicorn...' &&
+      gunicorn -b 0.0.0.0:5000 app:app
+      "
 
 volumes:
   db_data:

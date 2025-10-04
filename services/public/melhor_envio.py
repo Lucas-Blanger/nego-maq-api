@@ -26,82 +26,67 @@ class MelhorEnvioService:
         logging.info(f"[ME] Origem: {origem_cep} -> Destino: {destino_cep}")
 
         try:
-            # Preparar produtos para o cálculo
-            volumes = []
-            peso_total = 0
+            # Limpar CEPs
+            origem_limpo = origem_cep.replace('-', '').replace('.', '').replace(' ', '')
+            destino_limpo = destino_cep.replace('-', '').replace('.', '').replace(' ', '')
 
-            for produto in produtos:
-                peso_produto = produto.get('peso', 0.3)
-                quantidade = produto.get('quantidade', 1)
-                peso_total += peso_produto * quantidade
-
-                for _ in range(quantidade):
-                    volumes.append({
-                        "height": produto.get('altura', 10),
-                        "width": produto.get('largura', 15),
-                        "length": produto.get('comprimento', 20),
-                        "weight": peso_produto
-                    })
-
-            if not volumes:
-                volumes = [{
-                    "height": 10,
-                    "width": 15,
-                    "length": 20,
-                    "weight": max(peso_total, 0.1)
-                }]
-
-            payload = {
-                "from": {"postal_code": origem_cep.replace('-', '').replace('.', '')},
-                "to": {"postal_code": destino_cep.replace('-', '').replace('.', '')},
-                "products": volumes
+            # Headers simplificados (como no curl que funcionou)
+            headers = {
+                "Accept": "application/json",
+                "Authorization": f"Bearer {self.token}",
+                "User-Agent": "Teste"
             }
 
-            url_completa = f"{self.base_url}/shipment/calculate"
+            # Query params
+            params = {
+                'from[postal_code]': origem_limpo,
+                'to[postal_code]': destino_limpo,
+            }
 
-            logging.info(f"[ME] URL: {url_completa}")
-            logging.info(f"[ME] Payload: {payload}")
+            for idx, produto in enumerate(produtos):
+                params[f'products[{idx}][id]'] = str(idx + 1)
+                params[f'products[{idx}][width]'] = int(produto.get('largura', 15))
+                params[f'products[{idx}][height]'] = int(produto.get('altura', 10))
+                params[f'products[{idx}][length]'] = int(produto.get('comprimento', 20))
+                params[f'products[{idx}][weight]'] = float(produto.get('peso', 0.3))
+                params[f'products[{idx}][insurance_value]'] = 50
+                params[f'products[{idx}][quantity]'] = 1
 
-            response = requests.post(
-                url_completa,
-                headers=self.headers,
-                json=payload,
-                timeout=30
-            )
+            url = f"{self.base_url}/shipment/calculate"
 
-            logging.info(f"[ME] Status Code: {response.status_code}")
+            logging.info(f"[ME] URL: {url}")
+
+            response = requests.get(url, headers=headers, params=params, timeout=30)
+
+            logging.info(f"[ME] Status: {response.status_code}")
 
             if response.status_code == 200:
-                result = response.json()
-                logging.info(f"[ME] Resposta recebida: {len(result)} serviços")
+                try:
+                    result = response.json()
+                    logging.info(f"[ME] Sucesso! {len(result)} serviços")
 
-                servicos_disponiveis = []
+                    servicos = []
+                    for s in result:
+                        if not s.get('error') and s.get('price', 0) > 0:
+                            servicos.append({
+                                'id': s.get('id'),
+                                'name': s.get('name'),
+                                'price': float(s.get('price', 0)),
+                                'delivery_time': s.get('delivery_time', 0),
+                                'company': s.get('company', {}).get('name', ''),
+                                'currency': 'R$'
+                            })
 
-                for servico in result:
-                    if 'error' not in servico and servico.get('price', 0) > 0:
-                        servicos_disponiveis.append({
-                            'id': servico.get('id'),
-                            'name': servico.get('name'),
-                            'price': float(servico.get('price', 0)),
-                            'delivery_time': servico.get('delivery_time', 0),
-                            'company': servico.get('company', {}).get('name', ''),
-                            'currency': servico.get('currency', 'R$')
-                        })
-
-                return {"success": True, "servicos": servicos_disponiveis}
+                    return {"success": True, "servicos": servicos}
+                except:
+                    logging.error(f"[ME] Não é JSON: {response.text[:200]}")
+                    return {"success": False, "error": "Resposta inválida"}
             else:
-                logging.error(f"[ME] Erro HTTP {response.status_code}: {response.text}")
-                return {"success": False, "error": f"Erro HTTP {response.status_code}"}
+                logging.error(f"[ME] Erro {response.status_code}")
+                return {"success": False, "error": f"HTTP {response.status_code}"}
 
-        except requests.exceptions.Timeout:
-            logging.error("[ME] TIMEOUT na requisição")
-            return {"success": False, "error": "Timeout na consulta de frete"}
-        except requests.exceptions.RequestException as e:
-            logging.error(f"[ME] Erro de conexão: {type(e).__name__}")
-            logging.error(f"[ME] Detalhes: {str(e)}")
-            return {"success": False, "error": f"Erro de conexão: {type(e).__name__}"}
         except Exception as e:
-            logging.error(f"[ME] Erro geral: {str(e)}")
+            logging.error(f"[ME] Exception: {str(e)}")
             return {"success": False, "error": str(e)}
 
     def consultar_conta(self):
