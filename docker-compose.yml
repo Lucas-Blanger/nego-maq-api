@@ -18,7 +18,7 @@ services:
       echo 'Rodando seed...' &&
       python -m seeders.seed &&
       echo 'Iniciando Gunicorn...' &&
-      gunicorn -b 0.0.0.0:5000 app:app
+      gunicorn --reload -b 0.0.0.0:5000 app:app 
       "
 
   db:
@@ -29,6 +29,7 @@ services:
       MYSQL_DATABASE: nego_maq
       MYSQL_USER: adminuser
       MYSQL_PASSWORD: adminpass
+
     ports:
       - "3307:3306"
     volumes:
