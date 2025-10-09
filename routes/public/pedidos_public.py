@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from services.public.pedidos_service import PedidoService
 from services.public.pagamentos_service import PagamentoService
 from services.public.melhor_envio_service import calcular_frete_pedido
-from utils.auth import token_required
+from utils.middlewares.auth import token_required
 
 public_routes_pedidos = Blueprint("pedidos_public", __name__)
 

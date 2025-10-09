@@ -5,7 +5,7 @@ from services.public.auth_service import (
     recuperar_senha as recuperar_senha_service,
     editar_perfil as editar_perfil_service,
 )
-from utils.auth import token_required
+from utils.middlewares.auth import token_required
 
 auth_routes = Blueprint("auth", __name__, url_prefix="/auth")
 

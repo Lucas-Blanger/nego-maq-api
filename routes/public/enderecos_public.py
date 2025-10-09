@@ -4,7 +4,7 @@ from services.public.endereco_service import (
     listar_enderecos_usuario as listar_enderecos_usuario_service,
     obter_endereco as obter_endereco_service,
 )
-from utils.auth import token_required
+from utils.middlewares.auth import token_required
 
 public_enderecos_routes = Blueprint("enderecos_public", __name__)
 

@@ -13,7 +13,7 @@ from services.admin.admin_service import (
     get_taxa_conversao,
 )
 from datetime import datetime
-from utils.auth import admin_required
+from utils.middlewares.auth import admin_required
 
 admin_routes = Blueprint("admin", __name__, url_prefix="/admin")
 
