@@ -7,7 +7,7 @@ from services.admin.admin_pedidos_service import (
     deletar_item as deletar_item_service,
     atualizar_transacao as atualizar_transacao_service,
 )
-from utils.auth import admin_required
+from utils.middlewares.auth import admin_required
 
 admin_pedidos_routes = Blueprint("admin_pedidos", __name__, url_prefix="/admin_pedidos")
 
@@ -53,6 +53,7 @@ def deletar_pedido(pedido_id):
 
 
 # ITENS
+
 
 # Atualizar um item dentro de um pedido
 @admin_pedidos_routes.route("/itens/<item_id>", methods=["PUT"])

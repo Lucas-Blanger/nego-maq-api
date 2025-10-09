@@ -4,7 +4,7 @@ from services.admin.admin_enderecos_service import (
     atualizar_endereco as atualizar_endereco_service,
     deletar_endereco as deletar_endereco_service,
 )
-from utils.auth import admin_required
+from utils.middlewares.auth import admin_required
 
 admin_enderecos_routes = Blueprint(
     "admin_enderecos", __name__, url_prefix="/admin_enderecos"

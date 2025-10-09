@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from services.public.produtos_service import ProdutoService
 from services.public.carrinho_service import CarrinhoService
 from services.public.promocoes_service import PromocaoService
-from utils.auth import token_required
+from utils.middlewares.auth import token_required
 
 
 public_routes = Blueprint("public", __name__)

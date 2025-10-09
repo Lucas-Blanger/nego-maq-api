@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from services.public.melhor_envio_service import calcular_frete
-from utils.auth import token_required
+from utils.middlewares.auth import token_required
 
 frete_routes = Blueprint("frete", __name__, url_prefix="/frete")
 
@@ -12,7 +12,7 @@ def calcular(payload):
     try:
         resultado = calcular_frete(
             from_postal_code=data["from"],
-            to_postal_code=data["to"],
+            to_postal_code=data["sto"],
             weight=data["weight"],
             height=data["height"],
             width=data["width"],

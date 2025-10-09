@@ -4,7 +4,7 @@ from services.public.evento_service import (
     top_vendas as top_vendas_service,
     recomendacoes as recomendacoes_service,
 )
-from utils.auth import token_required
+from utils.middlewares.auth import token_required
 
 evento_routes = Blueprint("eventos", __name__, url_prefix="/eventos")
 
