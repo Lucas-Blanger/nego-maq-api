@@ -11,7 +11,7 @@ public_routes = Blueprint("public", __name__)
 # Health check
 @public_routes.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "API está funcionando corretamente"})
+    return jsonify({"status": "API está funcionando corretamente", "version": "2.0.1"})
 
 
 # PRODUTOS

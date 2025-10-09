@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from services.public.pedidos_service import PedidoService
 from services.public.pagamentos_service import PagamentoService
+from services.public.melhor_envio_service import calcular_frete_pedido
 from utils.auth import token_required
 
 public_routes_pedidos = Blueprint("pedidos_public", __name__)
@@ -21,7 +22,7 @@ def criar_pedido(payload):
 # RESUMO DO FRETE
 @public_routes_pedidos.route("/pedidos/<pedido_id>/frete/resumo", methods=["GET"])
 @token_required
-def resumo_frete(pedido_id):
+def resumo_frete(payload, pedido_id):
     pedido = PedidoService.obter_pedido(pedido_id)
     if not pedido:
         return jsonify({"erro": "Pedido não encontrado"}), 404
@@ -56,37 +57,79 @@ def resumo_frete(pedido_id):
 # COTAÇÃO DE FRETE
 @public_routes_pedidos.route("/pedidos/<pedido_id>/frete/cotacao", methods=["POST"])
 @token_required
-def cotacao_frete(pedido_id):
-    data = request.json
-    cep_destino = data.get("cep_destino")
-    if not cep_destino:
-        return jsonify({"erro": "cep_destino é obrigatório"}), 400
+def cotacao_frete(payload, pedido_id):
+    try:
+        data = request.json
+        cep_destino = data.get("cep_destino")
 
-    pedido = PedidoService.obter_pedido(pedido_id)
-    if not pedido:
-        return jsonify({"erro": "Pedido não encontrado"}), 404
+        if not cep_destino:
+            return jsonify({"erro": "cep_destino é obrigatório"}), 400
 
-    if not pedido.endereco:
-        return jsonify({"erro": "Endereço do pedido não encontrado"}), 400
+        pedido = PedidoService.obter_pedido(pedido_id)
+        if not pedido:
+            return jsonify({"erro": "Pedido não encontrado"}), 404
 
-    itens = [
-        {
-            "peso": float(i.peso),
-            "comprimento": float(i.comprimento),
-            "altura": float(i.altura),
-            "largura": float(i.largura),
-            "quantidade": i.quantidade,
+        if not pedido.endereco:
+            return jsonify({"erro": "Endereço do pedido não encontrado"}), 400
+
+        # Preparar itens para cálculo
+        itens = [
+            {
+                "peso": float(i.peso),
+                "comprimento": float(i.comprimento),
+                "altura": float(i.altura),
+                "largura": float(i.largura),
+                "quantidade": i.quantidade,
+            }
+            for i in pedido.itens
+        ]
+
+        # Calcular frete usando a API do Melhor Envio
+        opcoes_frete = calcular_frete_pedido(
+            cep_origem=pedido.endereco.cep, cep_destino=cep_destino, itens=itens
+        )
+
+        # Formatar resposta
+        resultado = {
+            "pedido_id": pedido.id,
+            "cep_origem": pedido.endereco.cep,
+            "cep_destino": cep_destino,
+            "opcoes": [],
         }
-        for i in pedido.itens
-    ]
 
-    frete_data = {
-        "cep_origem": pedido.endereco.cep,
-        "cep_destino": cep_destino,
-        "itens": itens,
-    }
+        # Processar e FILTRAR cada opção de frete
+        for opcao in opcoes_frete:
+            preco = float(opcao.get("price", 0))
+            prazo_dias = opcao.get("delivery_time")
 
-    return jsonify(frete_data), 200
+            # FILTRAR: apenas opções com preço válido e prazo definido
+            if preco > 0 and prazo_dias is not None:
+                resultado["opcoes"].append(
+                    {
+                        "id": opcao.get("id"),
+                        "transportadora": opcao.get("company", {}).get("name"),
+                        "servico": opcao.get("name"),
+                        "preco": preco,
+                        "prazo_dias": prazo_dias,
+                        "prazo_min": opcao.get("delivery_range", {}).get("min"),
+                        "prazo_max": opcao.get("delivery_range", {}).get("max"),
+                        "disponivel": True,
+                    }
+                )
+
+        # Ordenar por preço (do mais barato ao mais caro)
+        resultado["opcoes"].sort(key=lambda x: x["preco"])
+
+        if resultado["opcoes"]:
+            resultado["opcao_mais_barata"] = resultado["opcoes"][0]
+            resultado["opcao_mais_rapida"] = min(
+                resultado["opcoes"], key=lambda x: x["prazo_dias"]
+            )
+
+        return jsonify(resultado), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 400
 
 
 # OBTER PEDIDO
