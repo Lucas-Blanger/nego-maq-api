@@ -3,8 +3,12 @@ from services.public.pedidos_service import PedidoService
 from services.public.pagamentos_service import PagamentoService
 from services.public.melhor_envio_service import calcular_frete_pedido
 from utils.middlewares.auth import token_required
+import os
 
 public_routes_pedidos = Blueprint("pedidos_public", __name__)
+
+
+EMPRESA_CEP = os.getenv("EMPRESA_CEP")
 
 
 # CRIAR UM NOVO PEDIDO
@@ -34,10 +38,10 @@ def resumo_frete(payload, pedido_id):
         {
             "produto_id": i.produto_id,
             "quantidade": i.quantidade,
-            "peso": float(i.peso),
-            "comprimento": float(i.comprimento),
-            "altura": float(i.altura),
-            "largura": float(i.largura),
+            "peso": float(i.peso) if i.peso else 0,
+            "comprimento": float(i.comprimento) if i.comprimento else 0,
+            "altura": float(i.altura) if i.altura else 0,
+            "largura": float(i.largura) if i.largura else 0,
         }
         for i in pedido.itens
     ]
@@ -47,7 +51,8 @@ def resumo_frete(payload, pedido_id):
     return jsonify(
         {
             "pedido_id": pedido.id,
-            "cep_origem": pedido.endereco.cep,
+            "cep_origem": EMPRESA_CEP,
+            "cep_destino": pedido.endereco.cep,
             "itens": itens,
             "peso_total": peso_total,
         }
@@ -75,10 +80,10 @@ def cotacao_frete(payload, pedido_id):
         # Preparar itens para cálculo
         itens = [
             {
-                "peso": float(i.peso),
-                "comprimento": float(i.comprimento),
-                "altura": float(i.altura),
-                "largura": float(i.largura),
+                "peso": float(i.peso) if i.peso else 0,
+                "comprimento": float(i.comprimento) if i.comprimento else 0,
+                "altura": float(i.altura) if i.altura else 0,
+                "largura": float(i.largura) if i.largura else 0,
                 "quantidade": i.quantidade,
             }
             for i in pedido.itens
@@ -92,7 +97,7 @@ def cotacao_frete(payload, pedido_id):
         # Formatar resposta
         resultado = {
             "pedido_id": pedido.id,
-            "cep_origem": pedido.endereco.cep,
+            "cep_origem": EMPRESA_CEP,
             "cep_destino": cep_destino,
             "opcoes": [],
         }

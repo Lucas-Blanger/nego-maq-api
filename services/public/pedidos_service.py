@@ -57,10 +57,10 @@ class PedidoService:
                     produto_id=produto.id,
                     quantidade=quantidade,
                     preco_unitario=produto.preco,
-                    peso=item.get("peso", 0),
-                    comprimento=item.get("comprimento", 0),
-                    altura=item.get("altura", 0),
-                    largura=item.get("largura", 0),
+                    peso=produto.peso or 0,
+                    comprimento=produto.comprimento or 0,
+                    altura=produto.altura or 0,
+                    largura=produto.largura or 0,
                 )
             )
 
