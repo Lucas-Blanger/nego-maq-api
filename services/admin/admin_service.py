@@ -20,8 +20,26 @@ def adicionar_produto(data, file=None):
             f"Categoria inválida. Escolha entre: {', '.join(CATEGORIAS_VALIDAS)}"
         )
 
-    upload_result = cloudinary.uploader.upload(file)
-    image_url = upload_result["secure_url"]
+    obrigatorios = [
+        "nome",
+        "preco",
+        "estoque",
+        "peso",
+        "altura",
+        "largura",
+        "comprimento",
+    ]
+    for campo in obrigatorios:
+        if data.get(campo) is None:
+            raise ValueError(f"Campo obrigatório '{campo}' não informado.")
+
+    image_url = None
+    if file and file.filename != "":
+        try:
+            upload_result = cloudinary.uploader.upload(file)
+            image_url = upload_result["secure_url"]
+        except Exception as e:
+            raise ValueError(f"Erro ao fazer upload da imagem: {str(e)}")
 
     produto = Produto(
         id=str(uuid.uuid4()),
@@ -31,6 +49,10 @@ def adicionar_produto(data, file=None):
         preco=data.get("preco"),
         img=image_url,
         estoque=data.get("estoque"),
+        peso=data.get("peso"),
+        altura=data.get("altura"),
+        largura=data.get("largura"),
+        comprimento=data.get("comprimento"),
     )
     db.session.add(produto)
     db.session.commit()
@@ -59,7 +81,18 @@ def atualizar_produto(produto_id, data):
         )
 
     # Atualiza apenas os campos enviados
-    for campo in ["nome", "descricao", "categoria", "preco", "img", "estoque"]:
+    for campo in [
+        "nome",
+        "descricao",
+        "categoria",
+        "preco",
+        "img",
+        "estoque",
+        "peso",
+        "altura",
+        "largura",
+        "comprimento",
+    ]:
         if campo in data:
             setattr(produto, campo, data[campo])
 

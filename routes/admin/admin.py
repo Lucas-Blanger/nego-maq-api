@@ -33,6 +33,10 @@ def adicionar_produto_route():
             "categoria": request.form.get("categoria"),
             "preco": request.form.get("preco"),
             "estoque": request.form.get("estoque"),
+            "peso": request.form.get("peso"),
+            "altura": request.form.get("altura"),
+            "largura": request.form.get("largura"),
+            "comprimento": request.form.get("comprimento"),
         }
 
         produto = adicionar_produto_service(data, file)
