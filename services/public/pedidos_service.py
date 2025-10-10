@@ -4,6 +4,7 @@ from database.models.produto import Produto
 from database.models.usuario import Usuario
 from database.models.endereco import Endereco
 from database import db
+from decimal import Decimal
 
 
 class PedidoService:
@@ -11,8 +12,25 @@ class PedidoService:
     @staticmethod
     # Cria um novo pedido com itens
     def criar_pedido(data):
+        """
+        Cria um novo pedido com itens e frete.
+
+        Args:
+            data: {
+                "usuario_id": str,
+                "endereco_id": str (opcional),
+                "itens": [{"produto_id": str, "quantidade": int}],
+                "frete": {
+                    "valor": float,
+                    "tipo": str,
+                    "prazo_dias": int (opcional)
+                }
+            }
+        """
         usuario_id = data.get("usuario_id")
+        endereco_id = data.get("endereco_id")
         itens = data.get("itens", [])
+        frete = data.get("frete")
 
         if not usuario_id:
             raise ValueError("Usuário não informado")
@@ -25,17 +43,42 @@ class PedidoService:
         if not usuario:
             raise ValueError("Usuário não encontrado")
 
-        # Puxar o endereço principal do usuário (ou o primeiro disponível)
-        endereco = Endereco.query.filter_by(usuario_id=usuario_id).first()
-        if not endereco:
-            raise ValueError("Usuário não possui endereço cadastrado")
+        # Buscar endereço
+        if endereco_id:
+            endereco = Endereco.query.get(endereco_id)
+            if not endereco:
+                raise ValueError("Endereço não encontrado")
+            if endereco.usuario_id != usuario_id:
+                raise ValueError("Endereço não pertence ao usuário")
+        else:
+            # Puxar o primeiro endereço do usuário
+            endereco = Endereco.query.filter_by(usuario_id=usuario_id).first()
+            if not endereco:
+                raise ValueError("Usuário não possui endereço cadastrado")
 
-        # Cria o pedido com endereco_id do usuário
-        pedido = Pedido(usuario_id=usuario_id, endereco_id=endereco.id, valor_total=0)
+        # Validar frete
+        frete_valor = Decimal("0")
+        frete_tipo = None
+        if frete:
+            frete_valor = Decimal(str(frete.get("valor", 0)))
+            frete_tipo = frete.get("tipo")
+
+            if frete_valor < 0:
+                raise ValueError("Valor do frete inválido")
+
+        # Criar o pedido
+        pedido = Pedido(
+            usuario_id=usuario_id,
+            endereco_id=endereco.id,
+            valor_total=0,
+            frete_valor=frete_valor,
+            frete_tipo=frete_tipo,
+        )
         db.session.add(pedido)
         db.session.flush()
 
-        total = 0
+        # Adicionar itens
+        total_produtos = Decimal("0")
         for item in itens:
             produto_id = item.get("produto_id")
             if not produto_id:
@@ -48,8 +91,17 @@ class PedidoService:
                 raise ValueError(f"Produto {produto_id} não encontrado")
 
             quantidade = item.get("quantidade", 1)
+
+            # Verificar estoque
+            if produto.estoque < quantidade:
+                db.session.rollback()
+                raise ValueError(
+                    f"Estoque insuficiente para o produto {produto.nome}. "
+                    f"Disponível: {produto.estoque}, Solicitado: {quantidade}"
+                )
+
             subtotal = produto.preco * quantidade
-            total += subtotal
+            total_produtos += subtotal
 
             db.session.add(
                 ItemPedido(
@@ -64,10 +116,20 @@ class PedidoService:
                 )
             )
 
-        pedido.valor_total = total
+            # Atualizar estoque
+            produto.estoque -= quantidade
+
+        # Valor total = produtos + frete
+        pedido.valor_total = total_produtos + frete_valor
         db.session.commit()
 
-        return {"pedido_id": pedido.id, "valor_total": float(pedido.valor_total)}
+        return {
+            "pedido_id": pedido.id,
+            "valor_produtos": float(total_produtos),
+            "valor_frete": float(frete_valor),
+            "valor_total": float(pedido.valor_total),
+            "frete_tipo": frete_tipo,
+        }
 
     # Retorna pedido pelo ID
     @staticmethod
