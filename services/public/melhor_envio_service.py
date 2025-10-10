@@ -3,6 +3,8 @@ import requests
 
 MELHOR_ENVIO_API = os.getenv("MELHOR_ENVIO_API")
 TOKEN = os.getenv("MELHOR_ENVIO_TOKEN")
+EMPRESA_CEP = os.getenv("EMPRESA_CEP")
+
 
 HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
@@ -97,4 +99,44 @@ def listar_transportadoras():
     url = f"{MELHOR_ENVIO_API}/me/shipment/agencies"
     response = requests.get(url, headers=HEADERS)
     response.raise_for_status()
+    return response.json()
+
+
+def criar_pedido_melhor_envio(pedido):
+    """
+    Cria pedido no Melhor Envio após pagamento aprovado
+    """
+    url = f"{MELHOR_ENVIO_API}/me/cart"
+
+    payload = {
+        "service": pedido.frete_tipo,  # ID do serviço escolhido
+        "from": {
+            "name": "Sua Empresa",
+            "postal_code": EMPRESA_CEP,
+        },
+        "to": {
+            "name": pedido.usuario.nome,
+            "postal_code": pedido.endereco.cep,
+            "address": pedido.endereco.logradouro,
+            "number": pedido.endereco.numero,
+        },
+        "products": [
+            {
+                "name": item.produto.nome,
+                "quantity": item.quantidade,
+                "unitary_value": float(item.preco_unitario),
+            }
+            for item in pedido.itens
+        ],
+        "volumes": [
+            {
+                "height": max(i.altura for i in pedido.itens),
+                "width": max(i.largura for i in pedido.itens),
+                "length": max(i.comprimento for i in pedido.itens),
+                "weight": sum(i.peso * i.quantidade for i in pedido.itens),
+            }
+        ],
+    }
+
+    response = requests.post(url, headers=HEADERS, json=payload)
     return response.json()

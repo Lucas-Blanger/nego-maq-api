@@ -16,6 +16,10 @@ class TransacaoPagamento(db.Model):
         default=StatusPagamentoEnum.PENDENTE,
     )
     metodo_pagamento = db.Column(db.String(50), nullable=False)
+    mp_payment_id = db.Column(
+        db.String(100), nullable=True
+    )  # ID do pagamento no Mercado Pago
+    mp_preference_id = db.Column(db.String(100), nullable=True)  # ID da preferência
     criado_em = db.Column(db.DateTime, server_default=func.now())
     atualizado_em = db.Column(
         db.DateTime, server_default=func.now(), onupdate=func.now()

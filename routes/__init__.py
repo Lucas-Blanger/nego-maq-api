@@ -8,6 +8,7 @@ from routes.public.eventos import evento_routes
 from routes.admin.enderecos_admin import admin_enderecos_routes
 from routes.public.enderecos_public import public_enderecos_routes
 from routes.public.melhor_envio import frete_routes
+from routes.public.pagamento import pagamentos_routes
 
 bp = Blueprint("main", __name__)
 
@@ -20,3 +21,4 @@ bp.register_blueprint(evento_routes)
 bp.register_blueprint(admin_enderecos_routes)
 bp.register_blueprint(public_enderecos_routes)
 bp.register_blueprint(frete_routes)
+bp.register_blueprint(pagamentos_routes)

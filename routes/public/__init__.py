@@ -4,3 +4,4 @@ from .enderecos_public import public_enderecos_routes
 from .eventos import evento_routes
 from .pedidos_public import public_routes_pedidos
 from .melhor_envio import frete_routes
+from .pagamento import pagamentos_routes
