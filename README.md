@@ -11,7 +11,6 @@ API REST desenvolvida em Flask para uma loja online de facas e artigos de churra
 - [Instalação](#-instalação)
 - [Configuração](#-configuração)
 - [Como Executar](#-como-executar)
-- [Endpoints da API](#-endpoints-da-api)
 - [Autenticação](#-autenticação)
 
 ## ✨ Funcionalidades
