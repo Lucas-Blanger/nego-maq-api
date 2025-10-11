@@ -3,8 +3,7 @@ import mercadopago
 from decimal import Decimal
 
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN")
-MERCADOPAGO_PUBLIC_KEY = os.getenv("MERCADO_PAGO_PUBLIC_KEY")
-
+MERCADOPAGO_PUBLIC_KEY = os.getenv("MERCADOPAGO_PUBLIC_KEY")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://seudominio.com")
 
 
@@ -119,23 +118,34 @@ class MercadoPagoService:
             "payment_method_id": "pix",
             "payer": {"email": email_pagador},
             "external_reference": pedido.id,
-            "notification_url": f"{API_BASE_URL}/webhooks/mercadopago",
+            "notification_url": f"{API_BASE_URL}/api/webhooks/mercadopago",
         }
 
-        payment_response = self.sdk.payment().create(payment_data)
-        payment = payment_response["response"]
+        try:
+            payment_response = self.sdk.payment().create(payment_data)
 
-        return {
-            "payment_id": payment["id"],
-            "status": payment["status"],
-            "qr_code": payment["point_of_interaction"]["transaction_data"]["qr_code"],
-            "qr_code_base64": payment["point_of_interaction"]["transaction_data"][
-                "qr_code_base64"
-            ],
-            "ticket_url": payment["point_of_interaction"]["transaction_data"][
-                "ticket_url"
-            ],
-        }
+            # Verificar se houve erro
+            if payment_response.get("status") not in [200, 201]:
+                raise Exception(f"Erro ao criar pagamento PIX: {payment_response}")
+
+            payment = payment_response["response"]
+
+            # Verificar se tem os dados do PIX
+            if "point_of_interaction" not in payment:
+                raise Exception(f"Resposta do MP não contém dados do PIX: {payment}")
+
+            transaction_data = payment["point_of_interaction"]["transaction_data"]
+
+            return {
+                "payment_id": payment["id"],
+                "status": payment["status"],
+                "qr_code": transaction_data.get("qr_code", ""),
+                "qr_code_base64": transaction_data.get("qr_code_base64", ""),
+                "ticket_url": transaction_data.get("ticket_url", ""),
+            }
+        except Exception as e:
+            print(f"Erro ao processar pagamento PIX: {str(e)}")
+            raise
 
     def processar_pagamento_cartao(
         self, pedido, token_cartao, email_pagador, installments=1, issuer_id=None

@@ -164,7 +164,7 @@ def resumo_frete(payload, pedido_id):
 # OBTER PEDIDO
 @public_routes_pedidos.route("/pedidos/<pedido_id>", methods=["GET"])
 @token_required
-def obter_pedido(pedido_id):
+def obter_pedido(payload, pedido_id):
     pedido = PedidoService.obter_pedido(pedido_id)
     if not pedido:
         return jsonify({"erro": "Pedido não encontrado"}), 404
@@ -175,6 +175,8 @@ def obter_pedido(pedido_id):
             "usuario_id": pedido.usuario_id,
             "valor_total": float(pedido.valor_total),
             "status": pedido.status.value,
+            "frete_valor": float(pedido.frete_valor) if pedido.frete_valor else None,
+            "frete_tipo": pedido.frete_tipo,
             "itens": [
                 {
                     "produto_id": i.produto_id,
@@ -192,6 +194,17 @@ def obter_pedido(pedido_id):
                 }
                 for t in pedido.transacoes
             ],
+            # Adicione dados de envio
+            "envio": (
+                {
+                    "melhor_envio_id": getattr(pedido, "melhor_envio_id", None),
+                    "protocolo": getattr(pedido, "melhor_envio_protocolo", None),
+                    "rastreio": getattr(pedido, "melhor_envio_rastreio", None),
+                    "etiqueta_url": getattr(pedido, "etiqueta_url", None),
+                }
+                if hasattr(pedido, "melhor_envio_id") and pedido.melhor_envio_id
+                else None
+            ),
         }
     )
 
@@ -199,7 +212,7 @@ def obter_pedido(pedido_id):
 # PEDIDOS POR USUÁRIO
 @public_routes_pedidos.route("/usuarios/<usuario_id>/pedidos", methods=["GET"])
 @token_required
-def pedidos_usuario(usuario_id):
+def pedidos_usuario(payload, usuario_id):
     pedidos = PedidoService.listar_pedidos_usuario(usuario_id)
     return jsonify(
         [
@@ -207,6 +220,14 @@ def pedidos_usuario(usuario_id):
                 "pedido_id": p.id,
                 "valor_total": float(p.valor_total),
                 "status": p.status.value,
+                "frete_valor": float(p.frete_valor) if p.frete_valor else None,
+                "criado_em": (
+                    p.criado_em.isoformat()
+                    if hasattr(p, "criado_em") and p.criado_em
+                    else None
+                ),
+                "tem_rastreio": hasattr(p, "melhor_envio_id")
+                and p.melhor_envio_id is not None,
             }
             for p in pedidos
         ]

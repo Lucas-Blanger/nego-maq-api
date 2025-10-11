@@ -219,7 +219,7 @@ class PagamentoService:
 
     @staticmethod
     def estornar_pagamento(transacao_id, valor=None):
-        """Estorna um pagamento (total ou parcial)"""
+        "Estorna um pagamento (total ou parcial)"
         transacao = TransacaoPagamento.query.get(transacao_id)
         if not transacao:
             raise ValueError("Transação não encontrada")
@@ -246,10 +246,8 @@ class PagamentoService:
             "status": resultado["status"],
         }
 
-    # Métodos originais mantidos para compatibilidade
     @staticmethod
     def criar_transacao(pedido_id, valor, metodo_pagamento):
-        """Método legacy - manter para compatibilidade"""
         pedido = Pedido.query.get(pedido_id)
         if not pedido:
             raise ValueError("Pedido não encontrado")

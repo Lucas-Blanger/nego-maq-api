@@ -26,6 +26,11 @@ class Pedido(db.Model):
         db.DateTime, server_default=func.now(), onupdate=func.now()
     )
 
+    melhor_envio_id = db.Column(db.String(100), nullable=True)
+    melhor_envio_protocolo = db.Column(db.String(100), nullable=True)
+    melhor_envio_rastreio = db.Column(db.String(100), nullable=True)
+    etiqueta_url = db.Column(db.Text, nullable=True)
+
     usuario = db.relationship(
         "Usuario",
         backref=db.backref("pedidos", lazy=True, cascade="all, delete-orphan"),
