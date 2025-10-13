@@ -1,25 +1,26 @@
 import os
 import mercadopago
-from decimal import Decimal
 
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN")
-MERCADOPAGO_PUBLIC_KEY = os.getenv("MERCADOPAGO_PUBLIC_KEY")
-API_BASE_URL = os.getenv("API_BASE_URL", "https://seudominio.com")
+API_BASE_URL = os.getenv("API_BASE_URL")
 
 
 class MercadoPagoService:
 
+    # Serviço para integração com Mercado Pago Checkout Pro.
+
     def __init__(self):
+        if not MERCADOPAGO_ACCESS_TOKEN:
+            raise ValueError("MERCADOPAGO_ACCESS_TOKEN não configurado")
         self.sdk = mercadopago.SDK(MERCADOPAGO_ACCESS_TOKEN)
 
     def criar_preferencia_pagamento(self, pedido, itens):
         """
-        Cria uma preferência de pagamento no Mercado Pago.
-        Retorna o link para checkout e o preference_id.
-
-        Args:
-            pedido: objeto Pedido
-            itens: lista de itens do pedido com produto info
+        Cria uma preferência de pagamento.
+        O cliente será redirecionado para o Mercado Pago onde poderá escolher:
+        - Cartão de crédito/débito
+        - PIX
+        - Boleto bancário
 
         Returns:
             {
@@ -28,15 +29,14 @@ class MercadoPagoService:
                 "sandbox_init_point": "https://sandbox.mercadopago.com/..."
             }
         """
-
-        # Preparar itens para o Mercado Pago
+        # Preparar itens
         mp_items = []
         for item in itens:
             mp_items.append(
                 {
                     "id": item["produto_id"],
                     "title": item["nome"],
-                    "description": item.get("descricao", "")[:256],  # max 256 chars
+                    "description": item.get("descricao", "")[:256],
                     "picture_url": item.get("img"),
                     "category_id": item.get("categoria", "others"),
                     "quantity": item["quantidade"],
@@ -56,14 +56,12 @@ class MercadoPagoService:
                 }
             )
 
-        # Dados da preferência
+        # Configuração da preferência
         preference_data = {
             "items": mp_items,
             "payer": {
-                "name": pedido.usuario.nome if hasattr(pedido.usuario, "nome") else "",
-                "email": (
-                    pedido.usuario.email if hasattr(pedido.usuario, "email") else ""
-                ),
+                "name": getattr(pedido.usuario, "nome", ""),
+                "email": getattr(pedido.usuario, "email", ""),
                 "phone": {"number": getattr(pedido.usuario, "telefone", "")},
                 "address": {
                     "zip_code": pedido.endereco.cep if pedido.endereco else "",
@@ -79,27 +77,25 @@ class MercadoPagoService:
                 "pending": f"{API_BASE_URL}/pagamento/pendente",
             },
             "auto_return": "approved",
-            "external_reference": pedido.id,  # ID do seu pedido
+            "external_reference": str(pedido.id),
             "notification_url": f"{API_BASE_URL}/webhooks/mercadopago",
             "statement_descriptor": "SUA LOJA",
             "payment_methods": {
-                "excluded_payment_methods": [],
-                "excluded_payment_types": [],
-                "installments": 12,  # Parcelas máximas
+                "installments": 12,  # Máximo de parcelas
                 "default_installments": 1,
-            },
-            "shipments": {
-                "cost": float(pedido.frete_valor) if pedido.frete_valor else 0,
-                "mode": "not_specified",
             },
         }
 
-        # Criar preferência
+        # Criar preferência no Mercado Pago
         preference_response = self.sdk.preference().create(preference_data)
+
+        if preference_response.get("status") not in [200, 201]:
+            raise ValueError(f"Erro ao criar preferência: {preference_response}")
+
         preference = preference_response["response"]
 
         if "id" not in preference or "init_point" not in preference:
-            raise ValueError(f"Erro ao criar preferência: {preference}")
+            raise ValueError(f"Preferência inválida: {preference}")
 
         return {
             "preference_id": preference["id"],
@@ -107,85 +103,13 @@ class MercadoPagoService:
             "sandbox_init_point": preference.get("sandbox_init_point"),
         }
 
-    def processar_pagamento_pix(self, pedido, email_pagador):
-        """
-        Cria um pagamento PIX.
-        Retorna QR Code e código copia e cola.
-        """
-        payment_data = {
-            "transaction_amount": float(pedido.valor_total),
-            "description": f"Pedido #{pedido.id}",
-            "payment_method_id": "pix",
-            "payer": {"email": email_pagador},
-            "external_reference": pedido.id,
-            "notification_url": f"{API_BASE_URL}/api/webhooks/mercadopago",
-        }
-
-        try:
-            payment_response = self.sdk.payment().create(payment_data)
-
-            # Verificar se houve erro
-            if payment_response.get("status") not in [200, 201]:
-                raise Exception(f"Erro ao criar pagamento PIX: {payment_response}")
-
-            payment = payment_response["response"]
-
-            # Verificar se tem os dados do PIX
-            if "point_of_interaction" not in payment:
-                raise Exception(f"Resposta do MP não contém dados do PIX: {payment}")
-
-            transaction_data = payment["point_of_interaction"]["transaction_data"]
-
-            return {
-                "payment_id": payment["id"],
-                "status": payment["status"],
-                "qr_code": transaction_data.get("qr_code", ""),
-                "qr_code_base64": transaction_data.get("qr_code_base64", ""),
-                "ticket_url": transaction_data.get("ticket_url", ""),
-            }
-        except Exception as e:
-            print(f"Erro ao processar pagamento PIX: {str(e)}")
-            raise
-
-    def processar_pagamento_cartao(
-        self, pedido, token_cartao, email_pagador, installments=1, issuer_id=None
-    ):
-        """
-        Processa pagamento com cartão de crédito.
-
-        Args:
-            token_cartao: Token do cartão gerado no front-end
-            installments: Número de parcelas
-            issuer_id: ID do banco emissor
-        """
-        payment_data = {
-            "transaction_amount": float(pedido.valor_total),
-            "token": token_cartao,
-            "description": f"Pedido #{pedido.id}",
-            "installments": installments,
-            "payment_method_id": "visa",  # ou detectar automaticamente
-            "payer": {"email": email_pagador},
-            "external_reference": pedido.id,
-            "notification_url": f"{API_BASE_URL}/webhooks/mercadopago",
-        }
-
-        if issuer_id:
-            payment_data["issuer_id"] = issuer_id
-
-        payment_response = self.sdk.payment().create(payment_data)
-        payment = payment_response["response"]
-
-        return {
-            "payment_id": payment["id"],
-            "status": payment["status"],
-            "status_detail": payment["status_detail"],
-            "installments": payment.get("installments"),
-            "transaction_amount": payment["transaction_amount"],
-        }
-
     def consultar_pagamento(self, payment_id):
-        """Consulta status de um pagamento"""
+        # Consulta detalhes de um pagamento específico
         payment_response = self.sdk.payment().get(payment_id)
+
+        if payment_response.get("status") != 200:
+            raise ValueError(f"Pagamento {payment_id} não encontrado")
+
         payment = payment_response["response"]
 
         return {
@@ -199,47 +123,110 @@ class MercadoPagoService:
         }
 
     def processar_webhook(self, data):
-        """
-        Processa notificações do webhook do Mercado Pago.
 
-        Status possíveis:
-        - pending: Pagamento pendente
-        - approved: Pagamento aprovado
-        - authorized: Pagamento autorizado
-        - in_process: Em processamento
-        - in_mediation: Em disputa
-        - rejected: Rejeitado
-        - cancelled: Cancelado
-        - refunded: Estornado
-        - charged_back: Chargeback
-        """
+        # Processa notificações de webhook do Mercado Pago.
 
-        # Mercado Pago envia topic e id
-        topic = data.get("topic") or data.get("type")
-        resource_id = data.get("id") or data.get("data", {}).get("id")
+        try:
+            topic = data.get("topic") or data.get("type")
+            print(f"[MercadoPago] Webhook tipo: {topic}")
 
-        if topic == "payment":
-            payment_info = self.consultar_pagamento(resource_id)
+            if topic == "merchant_order":
+                return self._processar_merchant_order(data)
+            elif topic == "payment":
+                return self._processar_payment(data)
+            else:
+                raise ValueError(f"Tipo de webhook não suportado: {topic}")
+
+        except Exception as e:
+            print(f"Erro ao processar webhook: {e}")
+            raise
+
+    def _processar_merchant_order(self, data):
+        # Processa webhook de merchant_order
+        resource = data.get("resource", "")
+        order_id = (
+            resource.rstrip("/").split("/")[-1] if "http" in str(resource) else resource
+        )
+
+        if not order_id:
+            raise ValueError(f"ID da ordem não encontrado: {data}")
+
+        print(f"[MercadoPago] Buscando merchant_order: {order_id}")
+
+        ordem = self.sdk.merchant_order().get(order_id)
+
+        if not ordem or ordem.get("status") != 200:
+            raise ValueError(f"Ordem {order_id} não encontrada")
+
+        body = ordem["response"]
+        payments = body.get("payments", [])
+
+        if not payments:
+            print(f"[MercadoPago] Ordem ainda sem pagamentos")
             return {
-                "type": "payment",
-                "payment_id": payment_info["id"],
-                "status": payment_info["status"],
-                "pedido_id": payment_info.get("external_reference"),
-                "valor": payment_info["transaction_amount"],
+                "type": "merchant_order",
+                "payment_id": None,
+                "status": "pending",
+                "pedido_id": body.get("external_reference"),
             }
 
-        return None
+        primeiro_pagamento = payments[0]
+        print(
+            f"[MercadoPago] Pagamento: {primeiro_pagamento.get('id')} - {primeiro_pagamento.get('status')}"
+        )
+
+        return {
+            "type": "merchant_order",
+            "payment_id": (
+                str(primeiro_pagamento.get("id"))
+                if primeiro_pagamento.get("id")
+                else None
+            ),
+            "status": primeiro_pagamento.get("status"),
+            "pedido_id": body.get("external_reference"),
+        }
+
+    def _processar_payment(self, data):
+        # Processa webhook de payment
+        payment_id = (
+            data.get("data", {}).get("id") or data.get("resource") or data.get("id")
+        )
+
+        if isinstance(payment_id, str) and "http" in payment_id:
+            payment_id = payment_id.rstrip("/").split("/")[-1]
+
+        if not payment_id:
+            raise ValueError(f"ID do pagamento não encontrado: {data}")
+
+        print(f"[MercadoPago] Buscando pagamento: {payment_id}")
+
+        pagamento = self.sdk.payment().get(payment_id)
+
+        if not pagamento or pagamento.get("status") != 200:
+            raise ValueError(f"Pagamento {payment_id} não encontrado")
+
+        body = pagamento["response"]
+        print(f"[MercadoPago] Status: {body.get('status')}")
+
+        return {
+            "type": "payment",
+            "payment_id": str(payment_id),
+            "status": body.get("status"),
+            "pedido_id": body.get("external_reference"),
+        }
 
     def estornar_pagamento(self, payment_id, valor=None):
-        """
-        Estorna um pagamento (total ou parcial).
-        Se valor não for informado, estorna o valor total.
-        """
+        # Estorna um pagamento (total ou parcial). Se valor não informado, estorna o valor total.
+
         refund_data = {}
         if valor:
             refund_data["amount"] = float(valor)
 
         refund_response = self.sdk.refund().create(payment_id, refund_data)
+
+        if refund_response.get("status") not in [200, 201]:
+            raise ValueError(f"Erro ao estornar: {refund_response}")
+
         refund = refund_response["response"]
 
         return {

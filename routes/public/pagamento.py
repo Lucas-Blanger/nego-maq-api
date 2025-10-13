@@ -9,68 +9,8 @@ pagamentos_routes = Blueprint("pagamentos", __name__)
 @pagamentos_routes.route("/pedidos/<pedido_id>/pagamento/preferencia", methods=["POST"])
 @token_required
 def criar_preferencia(payload, pedido_id):
-    """
-    Cria uma preferência de pagamento e retorna link do checkout.
-    O usuário será redirecionado para o Mercado Pago.
-    """
     try:
         resultado = PagamentoService.criar_preferencia_pagamento(pedido_id)
-        return jsonify(resultado), 201
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 400
-
-
-# PAGAMENTO VIA PIX
-@pagamentos_routes.route("/pedidos/<pedido_id>/pagamento/pix", methods=["POST"])
-@token_required
-def pagamento_pix(payload, pedido_id):
-    """
-    Gera QR Code PIX para pagamento.
-
-    Body: {
-        "email": "usuario@email.com"
-    }
-    """
-    try:
-        data = request.json
-        email = data.get("email")
-
-        if not email:
-            return jsonify({"erro": "Email é obrigatório"}), 400
-
-        resultado = PagamentoService.processar_pagamento_pix(pedido_id, email)
-        return jsonify(resultado), 201
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 400
-
-
-# PAGAMENTO VIA CARTÃO
-@pagamentos_routes.route("/pedidos/<pedido_id>/pagamento/cartao", methods=["POST"])
-@token_required
-def pagamento_cartao(payload, pedido_id):
-    """
-    Processa pagamento com cartão de crédito.
-
-    Body: {
-        "token": "token_do_cartao",  // Gerado no front-end pelo Mercado Pago JS
-        "email": "usuario@email.com",
-        "installments": 3,  // Número de parcelas (opcional, default 1)
-        "issuer_id": "123"  // ID do banco emissor (opcional)
-    }
-    """
-    try:
-        data = request.json
-        token = data.get("token")
-        email = data.get("email")
-        installments = data.get("installments", 1)
-        issuer_id = data.get("issuer_id")
-
-        if not token or not email:
-            return jsonify({"erro": "Token e email são obrigatórios"}), 400
-
-        resultado = PagamentoService.processar_pagamento_cartao(
-            pedido_id, token, email, installments, issuer_id
-        )
         return jsonify(resultado), 201
     except Exception as e:
         return jsonify({"erro": str(e)}), 400
@@ -79,15 +19,11 @@ def pagamento_cartao(payload, pedido_id):
 # WEBHOOK MERCADO PAGO
 @pagamentos_routes.route("/webhooks/mercadopago", methods=["POST"])
 def webhook_mercadopago():
-    """
-    Recebe notificações do Mercado Pago sobre mudanças de status.
-    Esta rota NÃO precisa de autenticação.
-    """
+
+    # Recebe notificações do Mercado Pago sobre mudanças de status.
+
     try:
         data = request.json or request.form.to_dict()
-
-        # Log para debug
-        print(f"Webhook recebido: {data}")
 
         resultado = PagamentoService.processar_webhook_mercadopago(data)
 
@@ -126,7 +62,7 @@ def estornar_pagamento(payload, transacao_id):
 @pagamentos_routes.route("/transacoes/<transacao_id>", methods=["GET"])
 @token_required
 def consultar_transacao(payload, transacao_id):
-    """Consulta detalhes de uma transação"""
+    # Consulta detalhes de uma transação
     try:
         from database.models import TransacaoPagamento
 
@@ -157,8 +93,8 @@ def consultar_transacao(payload, transacao_id):
 # LISTAR TRANSAÇÕES DE UM PEDIDO
 @pagamentos_routes.route("/pedidos/<pedido_id>/transacoes", methods=["GET"])
 @token_required
-def listar_transacoes(payload, pedido_id):
-    """Lista todas as transações de um pedido"""
+def listar_transacoes(pedido_id):
+    # Lista todas as transações de um pedido
     try:
         transacoes = PagamentoService.listar_transacoes(pedido_id)
         return (

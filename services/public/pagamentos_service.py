@@ -6,16 +6,12 @@ from database.models import (
     StatusPedidoEnum,
 )
 from services.public.mercadopago_service import MercadoPagoService
-from decimal import Decimal
 
 
 class PagamentoService:
+
     @staticmethod
     def criar_preferencia_pagamento(pedido_id):
-        """
-        Cria uma preferência de pagamento no Mercado Pago.
-        Retorna o link para checkout.
-        """
         pedido = Pedido.query.get(pedido_id)
         if not pedido:
             raise ValueError("Pedido não encontrado")
@@ -59,100 +55,27 @@ class PagamentoService:
         }
 
     @staticmethod
-    def processar_pagamento_pix(pedido_id, email_pagador):
-        """Processa pagamento via PIX"""
-        pedido = Pedido.query.get(pedido_id)
-        if not pedido:
-            raise ValueError("Pedido não encontrado")
-
-        mp_service = MercadoPagoService()
-        resultado = mp_service.processar_pagamento_pix(pedido, email_pagador)
-
-        # Criar transação
-        transacao = TransacaoPagamento(
-            pedido_id=pedido.id,
-            valor=pedido.valor_total,
-            metodo_pagamento="pix",
-            status=StatusPagamentoEnum.PENDENTE,
-            mp_payment_id=resultado["payment_id"],
-        )
-        db.session.add(transacao)
-        db.session.commit()
-
-        return {
-            "transacao_id": transacao.id,
-            "payment_id": resultado["payment_id"],
-            "qr_code": resultado["qr_code"],
-            "qr_code_base64": resultado["qr_code_base64"],
-            "ticket_url": resultado["ticket_url"],
-        }
-
-    @staticmethod
-    def processar_pagamento_cartao(
-        pedido_id, token_cartao, email_pagador, installments=1, issuer_id=None
-    ):
-        """Processa pagamento via cartão de crédito"""
-        pedido = Pedido.query.get(pedido_id)
-        if not pedido:
-            raise ValueError("Pedido não encontrado")
-
-        mp_service = MercadoPagoService()
-        resultado = mp_service.processar_pagamento_cartao(
-            pedido, token_cartao, email_pagador, installments, issuer_id
-        )
-
-        # Mapear status do MP para nosso enum
-        status_map = {
-            "approved": StatusPagamentoEnum.APROVADO,
-            "pending": StatusPagamentoEnum.PENDENTE,
-            "in_process": StatusPagamentoEnum.PENDENTE,
-            "rejected": StatusPagamentoEnum.RECUSADO,
-            "cancelled": StatusPagamentoEnum.CANCELADO,
-        }
-
-        status = status_map.get(resultado["status"], StatusPagamentoEnum.PENDENTE)
-
-        # Criar transação
-        transacao = TransacaoPagamento(
-            pedido_id=pedido.id,
-            valor=pedido.valor_total,
-            metodo_pagamento="cartao_credito",
-            status=status,
-            mp_payment_id=resultado["payment_id"],
-        )
-        db.session.add(transacao)
-
-        # Atualizar status do pedido
-        if status == StatusPagamentoEnum.APROVADO:
-            pedido.status = StatusPedidoEnum.PAGO
-        elif status == StatusPagamentoEnum.RECUSADO:
-            pedido.status = StatusPedidoEnum.CANCELADO
-
-        db.session.commit()
-
-        return {
-            "transacao_id": transacao.id,
-            "payment_id": resultado["payment_id"],
-            "status": status.value,
-            "status_detail": resultado["status_detail"],
-            "pedido_status": pedido.status.value,
-        }
-
-    @staticmethod
     def processar_webhook_mercadopago(data):
         """
         Processa notificações do webhook do Mercado Pago.
-        Atualiza status da transação e do pedido.
+        Atualiza status da transação e do pedido automaticamente.
         """
         mp_service = MercadoPagoService()
         webhook_info = mp_service.processar_webhook(data)
 
-        if not webhook_info or webhook_info["type"] != "payment":
+        if not webhook_info:
+            return None
+
+        # Aceitar tanto merchant_order quanto payment
+        payment_id = webhook_info.get("payment_id")
+
+        if not payment_id:
+            print("[PagamentoService] Webhook sem payment_id, ignorando")
             return None
 
         # Buscar transação pelo payment_id do MP
         transacao = TransacaoPagamento.query.filter_by(
-            mp_payment_id=str(webhook_info["payment_id"])
+            mp_payment_id=str(payment_id)
         ).first()
 
         if not transacao:
@@ -166,60 +89,84 @@ class PagamentoService:
                 )
 
         if not transacao:
+            print(
+                f"[PagamentoService] Transação não encontrada para payment_id: {payment_id}"
+            )
+            pedido_id = webhook_info.get("pedido_id")
+            if pedido_id:
+                transacao = (
+                    TransacaoPagamento.query.filter_by(pedido_id=pedido_id)
+                    .order_by(TransacaoPagamento.criado_em.desc())
+                    .first()
+                )
+                if transacao:
+                    transacao.mp_payment_id = str(payment_id)
+
+        if not transacao:
             raise ValueError("Transação não encontrada")
 
-        # Mapear status do MP
         status_map = {
             "approved": StatusPagamentoEnum.APROVADO,
             "pending": StatusPagamentoEnum.PENDENTE,
             "in_process": StatusPagamentoEnum.PENDENTE,
-            "rejected": StatusPagamentoEnum.RECUSADO,
+            "rejected": StatusPagamentoEnum.REJEITADO,
             "cancelled": StatusPagamentoEnum.CANCELADO,
-            "refunded": StatusPagamentoEnum.ESTORNADO,
-            "charged_back": StatusPagamentoEnum.ESTORNADO,
+            "refunded": StatusPagamentoEnum.REEMBOLSADO,
+            "charged_back": StatusPagamentoEnum.REEMBOLSADO,
         }
 
+        status_anterior = transacao.status
         novo_status = status_map.get(
             webhook_info["status"], StatusPagamentoEnum.PENDENTE
         )
 
         # Atualizar transação
         transacao.status = novo_status
+        if not transacao.mp_payment_id:
+            transacao.mp_payment_id = str(payment_id)
 
         # Atualizar pedido
         pedido = transacao.pedido
         if novo_status == StatusPagamentoEnum.APROVADO:
             pedido.status = StatusPedidoEnum.PAGO
-        elif novo_status == StatusPagamentoEnum.RECUSADO:
+            print(f"[PagamentoService] Pedido {pedido.id} marcado como PAGO")
+        elif novo_status == StatusPagamentoEnum.REJEITADO:
             pedido.status = StatusPedidoEnum.CANCELADO
-        elif novo_status == StatusPagamentoEnum.ESTORNADO:
+            print(
+                f"[PagamentoService] Pedido {pedido.id} marcado como CANCELADO (rejeitado)"
+            )
+        elif novo_status == StatusPagamentoEnum.REEMBOLSADO:
             pedido.status = StatusPedidoEnum.CANCELADO
-            # Reverter estoque
             PagamentoService._reverter_estoque(pedido)
+            print(
+                f"[PagamentoService] Pedido {pedido.id} estornado e estoque revertido"
+            )
 
         db.session.commit()
 
         return {
             "transacao_id": transacao.id,
             "pedido_id": pedido.id,
-            "status_anterior": transacao.status.value,
+            "status_anterior": status_anterior.value,
             "status_novo": novo_status.value,
             "pedido_status": pedido.status.value,
         }
 
     @staticmethod
     def _reverter_estoque(pedido):
-        """Reverte o estoque dos produtos do pedido"""
+        # Reverte o estoque dos produtos do pedido
         from database.models.produto import Produto
 
         for item in pedido.itens:
             produto = Produto.query.get(item.produto_id)
             if produto:
                 produto.estoque += item.quantidade
+                print(
+                    f"[PagamentoService] Estoque revertido: {produto.nome} +{item.quantidade}"
+                )
 
     @staticmethod
     def estornar_pagamento(transacao_id, valor=None):
-        "Estorna um pagamento (total ou parcial)"
         transacao = TransacaoPagamento.query.get(transacao_id)
         if not transacao:
             raise ValueError("Transação não encontrada")
@@ -231,7 +178,7 @@ class PagamentoService:
         resultado = mp_service.estornar_pagamento(transacao.mp_payment_id, valor)
 
         # Atualizar status
-        transacao.status = StatusPagamentoEnum.ESTORNADO
+        transacao.status = StatusPagamentoEnum.REEMBOLSADO
         transacao.pedido.status = StatusPedidoEnum.CANCELADO
 
         # Reverter estoque
@@ -247,49 +194,42 @@ class PagamentoService:
         }
 
     @staticmethod
-    def criar_transacao(pedido_id, valor, metodo_pagamento):
-        pedido = Pedido.query.get(pedido_id)
-        if not pedido:
-            raise ValueError("Pedido não encontrado")
-
-        if valor is None or metodo_pagamento is None:
-            raise ValueError("Valor e método de pagamento são obrigatórios")
-
-        if float(valor) != float(pedido.valor_total):
-            raise ValueError(
-                "O valor da transação deve ser igual ao valor total do pedido"
-            )
-
-        transacao = TransacaoPagamento(
-            pedido_id=pedido.id,
-            valor=valor,
-            metodo_pagamento=metodo_pagamento,
-        )
-        db.session.add(transacao)
-
-        if transacao.status == StatusPagamentoEnum.APROVADO:
-            pedido.status = StatusPedidoEnum.PAGO
-        elif transacao.status in [
-            StatusPagamentoEnum.RECUSADO,
-            StatusPagamentoEnum.ESTORNADO,
-        ]:
-            pedido.status = StatusPedidoEnum.CANCELADO
-
-        db.session.commit()
-
-        return {
-            "transacao_id": transacao.id,
-            "pedido_id": pedido.id,
-            "valor": float(transacao.valor),
-            "status": transacao.status.value,
-            "metodo_pagamento": transacao.metodo_pagamento,
-            "pedido_status": pedido.status.value,
-        }
-
-    @staticmethod
     def listar_transacoes(pedido_id):
-        """Lista todas as transações de um pedido"""
+        # Lista todas as transações de um pedido
         pedido = Pedido.query.get(pedido_id)
         if not pedido:
             raise ValueError("Pedido não encontrado")
         return pedido.transacoes
+
+    @staticmethod
+    def consultar_transacao(transacao_id):
+        # Consulta detalhes de uma transação específica
+        transacao = TransacaoPagamento.query.get(transacao_id)
+        if not transacao:
+            raise ValueError("Transação não encontrada")
+
+        if transacao.mp_payment_id:
+            try:
+                mp_service = MercadoPagoService()
+                pagamento_mp = mp_service.consultar_pagamento(transacao.mp_payment_id)
+
+                # Atualizar status se mudou
+                status_map = {
+                    "approved": StatusPagamentoEnum.APROVADO,
+                    "pending": StatusPagamentoEnum.PENDENTE,
+                    "in_process": StatusPagamentoEnum.PENDENTE,
+                    "rejected": StatusPagamentoEnum.REJEITADO,
+                    "cancelled": StatusPagamentoEnum.CANCELADO,
+                    "refunded": StatusPagamentoEnum.REEMBOLSADO,
+                    "charged_back": StatusPagamentoEnum.REEMBOLSADO,
+                }
+
+                novo_status = status_map.get(pagamento_mp["status"])
+                if novo_status and novo_status != transacao.status:
+                    transacao.status = novo_status
+                    db.session.commit()
+
+            except Exception as e:
+                print(f"[PagamentoService] Erro ao consultar MP: {e}")
+
+        return transacao
