@@ -93,7 +93,7 @@ def consultar_transacao(payload, transacao_id):
 # LISTAR TRANSAÇÕES DE UM PEDIDO
 @pagamentos_routes.route("/pedidos/<pedido_id>/transacoes", methods=["GET"])
 @token_required
-def listar_transacoes(pedido_id):
+def listar_transacoes(payload, pedido_id):
     # Lista todas as transações de um pedido
     try:
         transacoes = PagamentoService.listar_transacoes(pedido_id)

@@ -112,8 +112,6 @@ def cotacao_frete_carrinho(payload):
 
 
 # CRIAR UM NOVO PEDIDO (com frete já selecionado)
-
-
 @public_routes_pedidos.route("/pedidos", methods=["POST"])
 @token_required
 def criar_pedido(payload):
@@ -244,26 +242,5 @@ def criar_transacao(pedido_id):
             pedido_id, data.get("valor"), data.get("metodo_pagamento")
         )
         return jsonify(transacao), 201
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 400
-
-
-# LISTAR TRANSAÇÕES
-@public_routes_pedidos.route("/pedidos/<pedido_id>/transacoes", methods=["GET"])
-@token_required
-def listar_transacoes(pedido_id):
-    try:
-        transacoes = PagamentoService.listar_transacoes(pedido_id)
-        return jsonify(
-            [
-                {
-                    "id": t.id,
-                    "valor": float(t.valor),
-                    "status": t.status.value,
-                    "metodo_pagamento": t.metodo_pagamento,
-                }
-                for t in transacoes
-            ]
-        )
     except Exception as e:
         return jsonify({"erro": str(e)}), 400
