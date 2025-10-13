@@ -3,15 +3,15 @@ from services.public.endereco_service import (
     criar_endereco as criar_endereco_service,
     listar_enderecos_usuario as listar_enderecos_usuario_service,
     obter_endereco as obter_endereco_service,
+    editar_endereco as editar_endereco_service,
+    deletar_endereco as deletar_endereco_service,
 )
 from utils.middlewares.auth import token_required
 
 public_enderecos_routes = Blueprint("enderecos_public", __name__)
 
+
 # CRIAR ENDEREÇO
-
-
-# Criar um novo endereço para o usuário
 @public_enderecos_routes.route("/usuarios/<usuario_id>/enderecos", methods=["POST"])
 @token_required
 def criar_endereco(payload, usuario_id):
@@ -29,6 +29,48 @@ def criar_endereco(payload, usuario_id):
         )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+
+
+# Atualizar um endereço existente
+@public_enderecos_routes.route("/enderecos/<endereco_id>", methods=["PUT"])
+@token_required
+def editar_endereco(payload, endereco_id):
+    try:
+        data = request.get_json() or {}
+        endereco = obter_endereco_service(endereco_id)
+        if not endereco:
+            return jsonify({"erro": "Endereço não encontrado"}), 404
+
+        if payload["id"] != endereco.usuario_id and not payload["is_admin"]:
+            return jsonify({"erro": "Acesso não autorizado"}), 403
+
+        endereco_editado = editar_endereco_service(endereco_id, data)
+        return (
+            jsonify(
+                {
+                    "mensagem": "Endereço atualizado com sucesso",
+                    "endereco_id": endereco_editado.id,
+                }
+            ),
+            200,
+        )
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
+
+
+# Deletar um endereço existente
+@public_enderecos_routes.route("/enderecos/<endereco_id>", methods=["DELETE"])
+@token_required
+def deletar_endereco(payload, endereco_id):
+    endereco = obter_endereco_service(endereco_id)
+    if not endereco:
+        return jsonify({"erro": "Endereço não encontrado"}), 404
+
+    if payload["id"] != endereco.usuario_id and not payload["is_admin"]:
+        return jsonify({"erro": "Acesso não autorizado"}), 403
+
+    deletar_endereco_service(endereco_id)
+    return jsonify({"mensagem": "Endereço deletado com sucesso"}), 200
 
 
 # Listar endereços de um usuário
