@@ -130,6 +130,46 @@ class PagamentoService:
         if novo_status == StatusPagamentoEnum.APROVADO:
             pedido.status = StatusPedidoEnum.PAGO
             print(f"[PagamentoService] Pedido {pedido.id} marcado como PAGO")
+
+            # Envia para o melhor invio
+            try:
+                from services.public.melhor_envio_service import (
+                    criar_pedido_melhor_envio,
+                    comprar_envio,
+                    gerar_etiqueta,
+                    imprimir_etiqueta,
+                )
+
+                print(f"[MELHOR ENVIO] Iniciando envio do pedido {pedido.id}")
+
+                # 1. Criar pedido no Melhor Envio
+                resultado_me = criar_pedido_envio(pedido)
+                pedido.melhor_envio_id = resultado_me.get("melhor_envio_id")
+                pedido.melhor_envio_protocolo = resultado_me.get("protocol")
+                print(f"[MELHOR ENVIO] Pedido criado: {pedido.melhor_envio_id}")
+
+                # 2. Comprar o frete
+                comprar_envio(pedido.melhor_envio_id)
+                print(f"[MELHOR ENVIO] Frete comprado")
+
+                # 3. Gerar etiqueta
+                gerar_etiqueta(pedido.melhor_envio_id)
+                print(f"[MELHOR ENVIO] Etiqueta gerada")
+
+                # 4. Obter link da etiqueta
+                etiqueta_url = imprimir_etiqueta(pedido.melhor_envio_id)
+                pedido.etiqueta_url = etiqueta_url
+                print(f"[MELHOR ENVIO] Etiqueta disponível: {etiqueta_url}")
+
+                # 5. Atualizar status para EM_SEPARACAO
+                pedido.status = StatusPedidoEnum.EM_SEPARACAO
+                print(f"[MELHOR ENVIO] Processo concluído com sucesso!")
+
+            except Exception as e:
+                print(f"[MELHOR ENVIO] ERRO ao processar envio: {str(e)}")
+                # Não vamos falhar o pagamento por causa do envio
+                # O pedido fica como PAGO e pode ser enviado manualmente depois
+
         elif novo_status == StatusPagamentoEnum.REJEITADO:
             pedido.status = StatusPedidoEnum.CANCELADO
             print(

@@ -79,7 +79,7 @@ class MercadoPagoService:
             "auto_return": "approved",
             "external_reference": str(pedido.id),
             "notification_url": f"{API_BASE_URL}/webhooks/mercadopago",
-            "statement_descriptor": "SUA LOJA",
+            "statement_descriptor": "NEGO-MAQ",
             "payment_methods": {
                 "installments": 12,  # Máximo de parcelas
                 "default_installments": 1,
