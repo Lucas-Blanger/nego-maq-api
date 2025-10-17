@@ -102,41 +102,112 @@ def listar_transportadoras():
     return response.json()
 
 
+def obter_id_servico_por_nome(nome_servico, resultado_calculo):
+    nome_servico = nome_servico.strip().upper()
+
+    for opcao in resultado_calculo:
+        nome_api = opcao.get("name", "").upper()
+        if nome_servico in nome_api:
+            return opcao["id"]
+
+    raise ValueError(
+        f"Serviço '{nome_servico}' não encontrado no resultado do cálculo."
+    )
+
+
 def criar_pedido_melhor_envio(pedido):
     """
-    Cria pedido no Melhor Envio após pagamento aprovado
+    Cria pedido no carrinho do Melhor Envio usando apenas o nome do frete
+    e retorna o ID e protocolo do pedido.
     """
-    url = f"{MELHOR_ENVIO_API}/me/cart"
+    from_postal_code = os.getenv("EMPRESA_CEP")
+    to_postal_code = pedido.endereco.cep
+
+    resultado_frete = calcular_frete(
+        from_postal_code=from_postal_code,
+        to_postal_code=to_postal_code,
+        weight=sum(i.peso * i.quantidade for i in pedido.itens),
+        height=max(i.altura for i in pedido.itens),
+        width=max(i.largura for i in pedido.itens),
+        length=max(i.comprimento for i in pedido.itens),
+    )
+
+    service_id = obter_id_servico_por_nome(pedido.frete_tipo, resultado_frete)
 
     payload = {
-        "service": pedido.frete_tipo,  # ID do serviço escolhido
+        "service": service_id,
         "from": {
-            "name": "Sua Empresa",
-            "postal_code": EMPRESA_CEP,
+            "name": os.getenv("EMPRESA_NOME"),
+            "phone": os.getenv("EMPRESA_TELEFONE"),
+            "email": os.getenv("EMPRESA_EMAIL"),
+            "company_document": os.getenv("EMPRESA_CNPJ"),
+            "address": os.getenv("EMPRESA_ENDERECO"),
+            "number": os.getenv("EMPRESA_NUMERO"),
+            "district": os.getenv("EMPRESA_BAIRRO"),
+            "city": os.getenv("EMPRESA_CIDADE"),
+            "state_abbr": os.getenv("EMPRESA_ESTADO"),
+            "postal_code": from_postal_code,
         },
         "to": {
             "name": pedido.usuario.nome,
-            "postal_code": pedido.endereco.cep,
+            "phone": pedido.usuario.telefone,
+            "email": pedido.usuario.email,
+            "document": pedido.usuario.cpf or "00000000000",
             "address": pedido.endereco.logradouro,
             "number": pedido.endereco.numero,
+            "district": pedido.endereco.bairro,
+            "city": pedido.endereco.cidade,
+            "state_abbr": pedido.endereco.estado,
+            "postal_code": pedido.endereco.cep,
         },
         "products": [
             {
                 "name": item.produto.nome,
-                "quantity": item.quantidade,
+                "quantity": int(item.quantidade),
                 "unitary_value": float(item.preco_unitario),
+                "weight": float(item.peso),
+                "width": float(item.largura),
+                "height": float(item.altura),
+                "length": float(item.comprimento),
             }
             for item in pedido.itens
         ],
-        "volumes": [
-            {
-                "height": max(i.altura for i in pedido.itens),
-                "width": max(i.largura for i in pedido.itens),
-                "length": max(i.comprimento for i in pedido.itens),
-                "weight": sum(i.peso * i.quantidade for i in pedido.itens),
-            }
-        ],
     }
 
+    url = f"{MELHOR_ENVIO_API}/me/cart"
     response = requests.post(url, headers=HEADERS, json=payload)
+    response.raise_for_status()
+    data = response.json()
+
+    pedido.melhor_envio_id = data.get("id")
+    pedido.melhor_envio_protocolo = data.get("protocol")
+
+    return {
+        "melhor_envio_id": pedido.melhor_envio_id,
+        "protocol": pedido.melhor_envio_protocolo,
+    }
+
+
+def comprar_envio(order_id):
+    """Compra o envio"""
+    url = f"{MELHOR_ENVIO_API}/me/shipment/checkout"
+    response = requests.post(url, headers=HEADERS, json={"orders": [order_id]})
+    response.raise_for_status()
     return response.json()
+
+
+def gerar_etiqueta(order_id):
+    """Gera a etiqueta de envio"""
+    url = f"{MELHOR_ENVIO_API}/me/shipment/generate"
+    response = requests.post(url, headers=HEADERS, json={"orders": [order_id]})
+    response.raise_for_status()
+    return response.json()
+
+
+def imprimir_etiqueta(order_id):
+    """Retorna o link de impressão da etiqueta"""
+    url = f"{MELHOR_ENVIO_API}/me/shipment/print"
+    response = requests.post(url, headers=HEADERS, json={"orders": [order_id]})
+    response.raise_for_status()
+    data = response.json()
+    return data.get("url")

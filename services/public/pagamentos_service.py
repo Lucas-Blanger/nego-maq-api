@@ -143,7 +143,7 @@ class PagamentoService:
                 print(f"[MELHOR ENVIO] Iniciando envio do pedido {pedido.id}")
 
                 # 1. Criar pedido no Melhor Envio
-                resultado_me = criar_pedido_envio(pedido)
+                resultado_me = criar_pedido_melhor_envio(pedido)
                 pedido.melhor_envio_id = resultado_me.get("melhor_envio_id")
                 pedido.melhor_envio_protocolo = resultado_me.get("protocol")
                 print(f"[MELHOR ENVIO] Pedido criado: {pedido.melhor_envio_id}")
