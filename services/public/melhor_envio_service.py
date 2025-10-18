@@ -12,6 +12,13 @@ logger = logging.getLogger("melhor_envio")
 MELHOR_ENVIO_API = os.getenv("MELHOR_ENVIO_API")
 TOKEN = os.getenv("MELHOR_ENVIO_TOKEN")
 EMPRESA_CEP = os.getenv("EMPRESA_CEP")
+EMPRESA_NOME = os.getenv("EMPRESA_NOME")
+EMPRESA_ENDERECO = os.getenv("EMPRESA_ENDERECO")
+EMPRESA_NUMERO = os.getenv("EMPRESA_NUMERO")
+EMPRESA_BAIRRO = os.getenv("EMPRESA_BAIRRO")
+EMPRESA_CIDADE = os.getenv("EMPRESA_CIDADE")
+EMPRESA_ESTADO = os.getenv("EMPRESA_ESTADO")
+EMPRESA_TELEFONE = os.getenv("EMPRESA_TELEFONE")
 
 
 HEADERS = {
@@ -29,7 +36,6 @@ def _only_digits(s):
 
 
 def _num(v):
-    """Normaliza Decimal -> float, mantém int/float, tenta converter strings numéricas."""
     if isinstance(v, Decimal):
         return float(v)
     if isinstance(v, (int, float)):
@@ -154,7 +160,16 @@ def criar_pedido_melhor_envio(pedido):
     from_postal_code = EMPRESA_CEP or os.getenv("EMPRESA_CEP")
     to_postal_code = getattr(pedido.endereco, "cep", None)
 
+    if not to_postal_code:
+        raise ValueError("CEP de destino não encontrado no pedido")
+
+    # Validar se o pedido tem itens
+    if not pedido.itens or len(pedido.itens) == 0:
+        raise ValueError("Pedido não possui itens")
+
     total_peso = sum(_num(i.peso) * int(i.quantidade) for i in pedido.itens)
+
+    # Calcular frete para obter service_id
     resultado_frete = calcular_frete(
         from_postal_code=from_postal_code,
         to_postal_code=to_postal_code,
@@ -168,44 +183,141 @@ def criar_pedido_melhor_envio(pedido):
 
     # Recupera CPF do usuário associado ao pedido e normaliza
     usuario = getattr(pedido, "usuario", None)
-    usuario_cpf_cript = getattr(usuario, "cpf", None) if usuario else None
+    if not usuario:
+        raise ValueError("Usuário não encontrado no pedido")
+
+    usuario_cpf_cript = getattr(usuario, "cpf", None)
     if not usuario_cpf_cript:
         raise ValueError("CPF do destinatário não encontrado no pedido")
+
     cpf = _only_digits(descriptografar_cpf(usuario_cpf_cript))
+    if not cpf or len(cpf) != 11:
+        raise ValueError("CPF inválido do destinatário")
 
-    # Monta volumes básicos a partir dos itens (um volume agregando todos os itens)
-    volume = {
-        "weight": _num(total_peso) / 1000.0,
-        "length": int(_num(max(i.comprimento for i in pedido.itens))),
-        "height": int(_num(max(i.altura for i in pedido.itens))),
-        "width": int(_num(max(i.largura for i in pedido.itens))),
-    }
+    # Validar endereço de destino
+    if not pedido.endereco:
+        raise ValueError("Endereço de destino não encontrado")
 
+    # Validar CEP de destino
+    to_cep_limpo = _only_digits(to_postal_code)
+    if not to_cep_limpo or len(to_cep_limpo) != 8:
+        raise ValueError(f"CEP de destino inválido: {to_postal_code}")
+
+    # Validar estado (UF)
+    estado = getattr(pedido.endereco, "estado", "")
+    estados_validos = [
+        "AC",
+        "AL",
+        "AP",
+        "AM",
+        "BA",
+        "CE",
+        "DF",
+        "ES",
+        "GO",
+        "MA",
+        "MT",
+        "MS",
+        "MG",
+        "PA",
+        "PB",
+        "PR",
+        "PE",
+        "PI",
+        "RJ",
+        "RN",
+        "RS",
+        "RO",
+        "RR",
+        "SC",
+        "SP",
+        "SE",
+        "TO",
+    ]
+    if not estado or estado.upper() not in estados_validos:
+        raise ValueError(
+            f"Estado inválido: {estado}. Use a sigla do estado (ex: SP, RJ, RS)"
+        )
+
+    # Preparar produtos (obrigatório quando há declaração de conteúdo)
+    products = []
+    for item in pedido.itens:
+        products.append(
+            {
+                "name": item.produto.nome[:50],
+                "quantity": int(item.quantidade),
+                "unitary_value": float(_num(item.preco_unitario)),
+            }
+        )
+
+    # Montar payload completo conforme documentação Melhor Envio
     payload = {
+        "service": service_id,
         "from": {
+            "name": EMPRESA_NOME,
             "postal_code": _only_digits(from_postal_code),
+            "address": EMPRESA_ENDERECO,
+            "number": EMPRESA_NUMERO,
+            "district": EMPRESA_BAIRRO,
+            "city": EMPRESA_CIDADE,
+            "state_abbr": EMPRESA_ESTADO,
+            "phone": _only_digits(EMPRESA_TELEFONE),
         },
         "to": {
-            "postal_code": _only_digits(to_postal_code),
-            "street": getattr(pedido.endereco, "logradouro", None) or "",
-            "number": getattr(pedido.endereco, "numero", None) or "",
-            "complement": getattr(pedido.endereco, "complemento", "") or "",
-            "neighborhood": getattr(pedido.endereco, "bairro", "") or "",
-            "city": getattr(pedido.endereco, "cidade", "") or "",
-            "state": getattr(pedido.endereco, "estado", "") or "",
             "name": f"{getattr(usuario, 'nome', '')} {getattr(usuario, 'sobrenome', '')}".strip(),
+            "postal_code": to_cep_limpo,
+            "address": getattr(pedido.endereco, "logradouro", "") or "",
+            "number": str(getattr(pedido.endereco, "numero", "") or "S/N"),
+            "complement": getattr(pedido.endereco, "complemento", "") or "",
+            "district": getattr(pedido.endereco, "bairro", "") or "",
+            "city": getattr(pedido.endereco, "cidade", "") or "",
+            "state_abbr": estado.upper(),
             "phone": _only_digits(getattr(usuario, "telefone", None) or ""),
             "document": cpf,
         },
-        "volumes": [volume],
-        "services": [service_id],
+        "products": products,
+        "volumes": [
+            {
+                "height": int(_num(max(i.altura for i in pedido.itens))),
+                "width": int(_num(max(i.largura for i in pedido.itens))),
+                "length": int(_num(max(i.comprimento for i in pedido.itens))),
+                "weight": float(_num(total_peso) / 1000.0),  # Converter para kg
+            }
+        ],
+        "options": {
+            "insurance_value": float(pedido.valor_total),
+            "receipt": False,
+            "own_hand": False,
+            "collect": False,
+        },
     }
 
     try:
         url = f"{MELHOR_ENVIO_API}/me/cart"
         resp = requests.post(url, headers=HEADERS, json=payload, timeout=20)
         resp.raise_for_status()
-        return resp.json()
+
+        result = resp.json()
+
+        # A API retorna o ID do pedido no carrinho
+        if isinstance(result, dict):
+            order_id = result.get("id")
+            protocol = result.get("protocol")
+        else:
+            # Se retornar lista, pegar primeiro item
+            order_id = result[0].get("id") if result else None
+            protocol = result[0].get("protocol") if result else None
+
+        if not order_id:
+            raise ValueError(f"ID do pedido não retornado pela API: {result}")
+
+        logger.info(f"Pedido Melhor Envio criado: {protocol} (ID: {order_id})")
+
+        return {
+            "melhor_envio_id": order_id,
+            "protocol": protocol,
+        }
+
     except requests.exceptions.HTTPError as e:
         body = None
         try:
@@ -223,7 +335,7 @@ def criar_pedido_melhor_envio(pedido):
 
 
 def comprar_envio(order_id):
-    """Compra o envio"""
+    # Compra o envio"""
     url = f"{MELHOR_ENVIO_API}/me/shipment/checkout"
     response = requests.post(url, headers=HEADERS, json={"orders": [order_id]})
     response.raise_for_status()
@@ -231,7 +343,7 @@ def comprar_envio(order_id):
 
 
 def gerar_etiqueta(order_id):
-    """Gera a etiqueta de envio"""
+    # Gera a etiqueta de envio"""
     url = f"{MELHOR_ENVIO_API}/me/shipment/generate"
     response = requests.post(url, headers=HEADERS, json={"orders": [order_id]})
     response.raise_for_status()
@@ -239,7 +351,7 @@ def gerar_etiqueta(order_id):
 
 
 def imprimir_etiqueta(order_id):
-    """Retorna o link de impressão da etiqueta"""
+    # Retorna o link de impressão da etiqueta"""
     url = f"{MELHOR_ENVIO_API}/me/shipment/print"
     response = requests.post(url, headers=HEADERS, json={"orders": [order_id]})
     response.raise_for_status()

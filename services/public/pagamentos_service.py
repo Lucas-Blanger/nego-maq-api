@@ -12,6 +12,9 @@ from services.public.melhor_envio_service import (
     gerar_etiqueta,
     imprimir_etiqueta,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PagamentoService:
@@ -72,11 +75,10 @@ class PagamentoService:
         if not webhook_info:
             return None
 
-        # Aceitar tanto merchant_order quanto payment
         payment_id = webhook_info.get("payment_id")
 
         if not payment_id:
-            print("[PagamentoService] Webhook sem payment_id, ignorando")
+            logger.debug("Webhook sem payment_id, ignorando")
             return None
 
         # Buscar transação pelo payment_id do MP
@@ -95,9 +97,7 @@ class PagamentoService:
                 )
 
         if not transacao:
-            print(
-                f"[PagamentoService] Transação não encontrada para payment_id: {payment_id}"
-            )
+            logger.warning(f"Transação não encontrada para payment_id: {payment_id}")
             pedido_id = webhook_info.get("pedido_id")
             if pedido_id:
                 transacao = (
@@ -135,52 +135,50 @@ class PagamentoService:
         pedido = transacao.pedido
         if novo_status == StatusPagamentoEnum.APROVADO:
             pedido.status = StatusPedidoEnum.PAGO
-            print(f"[PagamentoService] Pedido {pedido.id} marcado como PAGO")
+            logger.info(f"Pedido #{pedido.id} aprovado - R$ {pedido.valor_total}")
 
-            # Envia para o melhor invio
+            # Envia para o Melhor Envio
             try:
-
-                print(f"[MELHOR ENVIO] Iniciando envio do pedido {pedido.id}")
+                logger.info(f"Processando envio do pedido #{pedido.id}")
 
                 # 1. Criar pedido no Melhor Envio
                 resultado_me = criar_pedido_melhor_envio(pedido)
                 pedido.melhor_envio_id = resultado_me.get("melhor_envio_id")
                 pedido.melhor_envio_protocolo = resultado_me.get("protocol")
-                print(f"[MELHOR ENVIO] Pedido criado: {pedido.melhor_envio_id}")
 
                 # 2. Comprar o frete
                 comprar_envio(pedido.melhor_envio_id)
-                print(f"[MELHOR ENVIO] Frete comprado")
 
                 # 3. Gerar etiqueta
                 gerar_etiqueta(pedido.melhor_envio_id)
-                print(f"[MELHOR ENVIO] Etiqueta gerada")
 
                 # 4. Obter link da etiqueta
                 etiqueta_url = imprimir_etiqueta(pedido.melhor_envio_id)
                 pedido.etiqueta_url = etiqueta_url
-                print(f"[MELHOR ENVIO] Etiqueta disponível: {etiqueta_url}")
 
                 # 5. Atualizar status para EM_SEPARACAO
                 pedido.status = StatusPedidoEnum.EM_SEPARACAO
-                print(f"[MELHOR ENVIO] Processo concluído com sucesso!")
+
+                logger.info(
+                    f"Envio processado: {pedido.melhor_envio_protocolo} | "
+                    f"Etiqueta: {etiqueta_url}"
+                )
 
             except Exception as e:
-                print(f"[MELHOR ENVIO] ERRO ao processar envio: {str(e)}")
+                logger.error(
+                    f"Erro ao processar envio do pedido #{pedido.id}: {str(e)}"
+                )
                 # Não vamos falhar o pagamento por causa do envio
                 # O pedido fica como PAGO e pode ser enviado manualmente depois
 
         elif novo_status == StatusPagamentoEnum.REJEITADO:
             pedido.status = StatusPedidoEnum.CANCELADO
-            print(
-                f"[PagamentoService] Pedido {pedido.id} marcado como CANCELADO (rejeitado)"
-            )
+            logger.warning(f"Pedido #{pedido.id} rejeitado")
+
         elif novo_status == StatusPagamentoEnum.REEMBOLSADO:
             pedido.status = StatusPedidoEnum.CANCELADO
             PagamentoService._reverter_estoque(pedido)
-            print(
-                f"[PagamentoService] Pedido {pedido.id} estornado e estoque revertido"
-            )
+            logger.info(f"Pedido #{pedido.id} estornado e estoque revertido")
 
         db.session.commit()
 
@@ -201,9 +199,7 @@ class PagamentoService:
             produto = Produto.query.get(item.produto_id)
             if produto:
                 produto.estoque += item.quantidade
-                print(
-                    f"[PagamentoService] Estoque revertido: {produto.nome} +{item.quantidade}"
-                )
+                logger.debug(f"Estoque revertido: {produto.nome} +{item.quantidade}")
 
     @staticmethod
     def estornar_pagamento(transacao_id, valor=None):
@@ -225,6 +221,11 @@ class PagamentoService:
         PagamentoService._reverter_estoque(transacao.pedido)
 
         db.session.commit()
+
+        logger.info(
+            f"💰 Estorno processado: Pedido #{transacao.pedido.id} - "
+            f"R$ {resultado['amount']}"
+        )
 
         return {
             "refund_id": resultado["refund_id"],
@@ -270,6 +271,6 @@ class PagamentoService:
                     db.session.commit()
 
             except Exception as e:
-                print(f"[PagamentoService] Erro ao consultar MP: {e}")
+                logger.error(f"Erro ao consultar MP: {e}")
 
         return transacao
