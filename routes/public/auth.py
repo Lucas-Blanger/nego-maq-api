@@ -5,6 +5,7 @@ from services.public.auth_service import (
     recuperar_senha as recuperar_senha_service,
     editar_perfil as editar_perfil_service,
 )
+from utils.crypto_utils import descriptografar_cpf
 from utils.middlewares.auth import token_required
 
 auth_routes = Blueprint("auth", __name__, url_prefix="/auth")
@@ -20,6 +21,7 @@ def registrar():
             sobrenome=data["sobrenome"],
             email=data["email"],
             telefone=data["telefone"],
+            cpf=data.get("cpf"),
             senha=data["senha"],
             is_admin=data.get("is_admin", False),
         )
@@ -34,6 +36,7 @@ def registrar():
                         "sobrenome": usuario.sobrenome,
                         "email": usuario.email,
                         "telefone": usuario.telefone,
+                        "cpf": descriptografar_cpf(usuario.cpf),
                         "is_admin": usuario.is_admin,
                     },
                 }
@@ -61,6 +64,7 @@ def login():
                         "sobrenome": usuario.sobrenome,
                         "email": usuario.email,
                         "telefone": usuario.telefone,
+                        "cpf": descriptografar_cpf(usuario.cpf),
                         "is_admin": usuario.is_admin,
                     },
                 }
@@ -93,6 +97,7 @@ def editar_perfil(payload):
             novo_sobrenome=data.get("novo_sobrenome"),
             novo_email=data.get("novo_email"),
             novo_telefone=data.get("novo_telefone"),
+            novo_cpf=data.get("novo_cpf"),
             nova_senha=data.get("nova_senha"),
         )
         return (
@@ -105,6 +110,7 @@ def editar_perfil(payload):
                         "sobrenome": usuario.sobrenome,
                         "email": usuario.email,
                         "telefone": usuario.telefone,
+                        "cpf": descriptografar_cpf(usuario.cpf),
                         "is_admin": usuario.is_admin,
                     },
                 }

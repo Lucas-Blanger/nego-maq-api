@@ -6,6 +6,12 @@ from database.models import (
     StatusPedidoEnum,
 )
 from services.public.mercadopago_service import MercadoPagoService
+from services.public.melhor_envio_service import (
+    criar_pedido_melhor_envio,
+    comprar_envio,
+    gerar_etiqueta,
+    imprimir_etiqueta,
+)
 
 
 class PagamentoService:
@@ -133,12 +139,6 @@ class PagamentoService:
 
             # Envia para o melhor invio
             try:
-                from services.public.melhor_envio_service import (
-                    criar_pedido_melhor_envio,
-                    comprar_envio,
-                    gerar_etiqueta,
-                    imprimir_etiqueta,
-                )
 
                 print(f"[MELHOR ENVIO] Iniciando envio do pedido {pedido.id}")
 

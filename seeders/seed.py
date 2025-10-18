@@ -2,6 +2,7 @@ import uuid
 from app import create_app
 from database import db
 from database.models import Usuario, Produto
+from utils.crypto_utils import criptografar_cpf
 
 
 # rode python -m seeders.seed para popular o banco de dados (SOMENTE PARA DESENVOLVIMENTO)
@@ -13,9 +14,14 @@ def seed():
         db.create_all()
 
         # Criar usuário admin
+        # Criar usuário admin
         if not Usuario.query.filter_by(email="admin@loja.com").first():
             admin = Usuario(
-                nome="Admin", sobrenome="admin", email="admin@loja.com", is_admin=True
+                nome="Admin",
+                sobrenome="admin",
+                email="admin@loja.com",
+                cpf=criptografar_cpf("389.091.660-02"),
+                is_admin=True,
             )
             admin.set_senha("admin123")
             db.session.add(admin)
@@ -23,7 +29,11 @@ def seed():
         # Criar usuário normal
         if not Usuario.query.filter_by(email="teste@teste.com").first():
             usuario = Usuario(
-                nome="Teste", sobrenome="Teste", email="teste@teste.com", is_admin=False
+                nome="Teste",
+                sobrenome="Teste",
+                email="teste@teste.com",
+                cpf=criptografar_cpf("123.377.970-23"),
+                is_admin=False,
             )
             usuario.set_senha("teste")
             db.session.add(usuario)

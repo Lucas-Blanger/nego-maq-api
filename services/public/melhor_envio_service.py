@@ -1,5 +1,13 @@
 import os
+import re
+import json
+import logging
 import requests
+from decimal import Decimal
+from utils.crypto_utils import descriptografar_cpf
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("melhor_envio")
 
 MELHOR_ENVIO_API = os.getenv("MELHOR_ENVIO_API")
 TOKEN = os.getenv("MELHOR_ENVIO_TOKEN")
@@ -14,36 +22,50 @@ HEADERS = {
 }
 
 
+def _only_digits(s):
+    if not s:
+        return None
+    return re.sub(r"\D", "", s)
+
+
+def _num(v):
+    """Normaliza Decimal -> float, mantém int/float, tenta converter strings numéricas."""
+    if isinstance(v, Decimal):
+        return float(v)
+    if isinstance(v, (int, float)):
+        return v
+    try:
+        return float(v)
+    except Exception:
+        return v
+
+
 def calcular_frete(from_postal_code, to_postal_code, weight, height, width, length):
     url = f"{MELHOR_ENVIO_API}/me/shipment/calculate"
 
     # Limpa e valida CEPs
-    from_cep = str(from_postal_code).replace("-", "").strip()
-    to_cep = str(to_postal_code).replace("-", "").strip()
+    from_cep = _only_digits(str(from_postal_code))
+    to_cep = _only_digits(str(to_postal_code))
 
-    if len(from_cep) != 8 or len(to_cep) != 8:
-        raise ValueError("CEPs devem ter 8 dígitos")
+    if not from_cep or len(from_cep) != 8 or not to_cep or len(to_cep) != 8:
+        raise ValueError("CEPs inválidos para cálculo de frete")
 
-    # Converter peso para kg
-    weight_kg = float(weight) / 1000
+    # Converter peso para kg (se peso já vier em gramas)
+    weight_kg = _num(float(weight) / 1000 if float(weight) > 50 else float(weight))
+    height = int(_num(height))
+    width = int(_num(width))
+    length = int(_num(length))
 
     # Validações básicas
     if weight_kg < 0.001:
-        raise ValueError("Peso mínimo: 1 grama")
+        raise ValueError("Peso muito baixo")
     if weight_kg > 30:
-        raise ValueError("Peso máximo: 30 kg")
+        raise ValueError("Peso excede limite do Melhor Envio (30kg)")
 
-    height = int(height)
-    width = int(width)
-    length = int(length)
-
-    # Dimensões mínimas
     if height < 1 or width < 1 or length < 1:
-        raise ValueError("Dimensões mínimas: 1 cm")
-
-    # Soma das dimensões não pode exceder 200cm
+        raise ValueError("Dimensões inválidas")
     if (height + width + length) > 200:
-        raise ValueError("Soma das dimensões não pode exceder 200 cm")
+        raise ValueError("Soma das dimensões excede 200cm")
 
     payload = {
         "from": {"postal_code": from_cep},
@@ -57,14 +79,23 @@ def calcular_frete(from_postal_code, to_postal_code, weight, height, width, leng
     }
 
     try:
-        response = requests.post(url, headers=HEADERS, json=payload)
-        response.raise_for_status()
-        return response.json()
-
+        resp = requests.post(url, headers=HEADERS, json=payload, timeout=15)
+        resp.raise_for_status()
+        return resp.json()
     except requests.exceptions.HTTPError as e:
-        print(f"Erro HTTP: {e}")
-        print(f"Response body: {response.text}")
-        raise
+        body = None
+        try:
+            body = resp.json()
+        except Exception:
+            body = resp.text if resp is not None else str(e)
+        logger.error(
+            "Melhor Envio calcular_frete error: %s %s",
+            getattr(resp, "status_code", None),
+            body,
+        )
+        raise ValueError(
+            f"Melhor Envio calcular_frete: {getattr(resp, 'status_code', None)} - {body}"
+        ) from e
 
 
 def calcular_frete_pedido(cep_origem, cep_destino, itens):
@@ -120,72 +151,75 @@ def criar_pedido_melhor_envio(pedido):
     Cria pedido no carrinho do Melhor Envio usando apenas o nome do frete
     e retorna o ID e protocolo do pedido.
     """
-    from_postal_code = os.getenv("EMPRESA_CEP")
-    to_postal_code = pedido.endereco.cep
+    from_postal_code = EMPRESA_CEP or os.getenv("EMPRESA_CEP")
+    to_postal_code = getattr(pedido.endereco, "cep", None)
 
+    total_peso = sum(_num(i.peso) * int(i.quantidade) for i in pedido.itens)
     resultado_frete = calcular_frete(
         from_postal_code=from_postal_code,
         to_postal_code=to_postal_code,
-        weight=sum(i.peso * i.quantidade for i in pedido.itens),
-        height=max(i.altura for i in pedido.itens),
-        width=max(i.largura for i in pedido.itens),
-        length=max(i.comprimento for i in pedido.itens),
+        weight=total_peso,
+        height=max(int(_num(i.altura)) for i in pedido.itens),
+        width=max(int(_num(i.largura)) for i in pedido.itens),
+        length=max(int(_num(i.comprimento)) for i in pedido.itens),
     )
 
     service_id = obter_id_servico_por_nome(pedido.frete_tipo, resultado_frete)
 
+    # Recupera CPF do usuário associado ao pedido e normaliza
+    usuario = getattr(pedido, "usuario", None)
+    usuario_cpf_cript = getattr(usuario, "cpf", None) if usuario else None
+    if not usuario_cpf_cript:
+        raise ValueError("CPF do destinatário não encontrado no pedido")
+    cpf = _only_digits(descriptografar_cpf(usuario_cpf_cript))
+
+    # Monta volumes básicos a partir dos itens (um volume agregando todos os itens)
+    volume = {
+        "weight": _num(total_peso) / 1000.0,
+        "length": int(_num(max(i.comprimento for i in pedido.itens))),
+        "height": int(_num(max(i.altura for i in pedido.itens))),
+        "width": int(_num(max(i.largura for i in pedido.itens))),
+    }
+
     payload = {
-        "service": service_id,
         "from": {
-            "name": os.getenv("EMPRESA_NOME"),
-            "phone": os.getenv("EMPRESA_TELEFONE"),
-            "email": os.getenv("EMPRESA_EMAIL"),
-            "company_document": os.getenv("EMPRESA_CNPJ"),
-            "address": os.getenv("EMPRESA_ENDERECO"),
-            "number": os.getenv("EMPRESA_NUMERO"),
-            "district": os.getenv("EMPRESA_BAIRRO"),
-            "city": os.getenv("EMPRESA_CIDADE"),
-            "state_abbr": os.getenv("EMPRESA_ESTADO"),
-            "postal_code": from_postal_code,
+            "postal_code": _only_digits(from_postal_code),
         },
         "to": {
-            "name": pedido.usuario.nome,
-            "phone": pedido.usuario.telefone,
-            "email": pedido.usuario.email,
-            "document": pedido.usuario.cpf or "00000000000",
-            "address": pedido.endereco.logradouro,
-            "number": pedido.endereco.numero,
-            "district": pedido.endereco.bairro,
-            "city": pedido.endereco.cidade,
-            "state_abbr": pedido.endereco.estado,
-            "postal_code": pedido.endereco.cep,
+            "postal_code": _only_digits(to_postal_code),
+            "street": getattr(pedido.endereco, "logradouro", None) or "",
+            "number": getattr(pedido.endereco, "numero", None) or "",
+            "complement": getattr(pedido.endereco, "complemento", "") or "",
+            "neighborhood": getattr(pedido.endereco, "bairro", "") or "",
+            "city": getattr(pedido.endereco, "cidade", "") or "",
+            "state": getattr(pedido.endereco, "estado", "") or "",
+            "name": f"{getattr(usuario, 'nome', '')} {getattr(usuario, 'sobrenome', '')}".strip(),
+            "phone": _only_digits(getattr(usuario, "telefone", None) or ""),
+            "document": cpf,
         },
-        "products": [
-            {
-                "name": item.produto.nome,
-                "quantity": int(item.quantidade),
-                "unitary_value": float(item.preco_unitario),
-                "weight": float(item.peso),
-                "width": float(item.largura),
-                "height": float(item.altura),
-                "length": float(item.comprimento),
-            }
-            for item in pedido.itens
-        ],
+        "volumes": [volume],
+        "services": [service_id],
     }
 
-    url = f"{MELHOR_ENVIO_API}/me/cart"
-    response = requests.post(url, headers=HEADERS, json=payload)
-    response.raise_for_status()
-    data = response.json()
-
-    pedido.melhor_envio_id = data.get("id")
-    pedido.melhor_envio_protocolo = data.get("protocol")
-
-    return {
-        "melhor_envio_id": pedido.melhor_envio_id,
-        "protocol": pedido.melhor_envio_protocolo,
-    }
+    try:
+        url = f"{MELHOR_ENVIO_API}/me/cart"
+        resp = requests.post(url, headers=HEADERS, json=payload, timeout=20)
+        resp.raise_for_status()
+        return resp.json()
+    except requests.exceptions.HTTPError as e:
+        body = None
+        try:
+            body = resp.json()
+        except Exception:
+            body = resp.text if resp is not None else str(e)
+        logger.error(
+            "Melhor Envio criar_pedido error: %s %s",
+            getattr(resp, "status_code", None),
+            body,
+        )
+        raise ValueError(
+            f"Melhor Envio criar_pedido: {getattr(resp, 'status_code', None)} - {body}"
+        ) from e
 
 
 def comprar_envio(order_id):
