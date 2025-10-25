@@ -146,6 +146,27 @@ class PagamentoService:
                 pedido.melhor_envio_id = resultado_me.get("melhor_envio_id")
                 pedido.melhor_envio_protocolo = resultado_me.get("protocol")
 
+                # Salvar serviço e preço real usado
+                servico_usado = resultado_me.get("service_name", pedido.frete_tipo)
+                preco_real = resultado_me.get("price", pedido.frete_valor)
+
+                # Se o serviço mudou, atualizar
+                if servico_usado and servico_usado != pedido.frete_tipo:
+                    logger.warning(
+                        f"Serviço alterado: {pedido.frete_tipo} → {servico_usado}"
+                    )
+                    pedido.frete_tipo = servico_usado
+
+                # Se o preço mudou, atualizar
+                if (
+                    preco_real
+                    and abs(float(preco_real) - float(pedido.frete_valor)) > 0.01
+                ):
+                    logger.warning(
+                        f"Preço frete atualizado: R$ {pedido.frete_valor} → R$ {preco_real}"
+                    )
+                    pedido.frete_valor = preco_real
+
                 # 2. Comprar o frete
                 comprar_envio(pedido.melhor_envio_id)
 
@@ -166,7 +187,7 @@ class PagamentoService:
 
             except Exception as e:
                 logger.error(
-                    f"Erro ao processar envio do pedido #{pedido.id}: {str(e)}"
+                    f"❌ Erro ao processar envio do pedido #{pedido.id}: {str(e)}"
                 )
                 # Não vamos falhar o pagamento por causa do envio
                 # O pedido fica como PAGO e pode ser enviado manualmente depois
@@ -223,7 +244,7 @@ class PagamentoService:
         db.session.commit()
 
         logger.info(
-            f"💰 Estorno processado: Pedido #{transacao.pedido.id} - "
+            f"Estorno processado: Pedido #{transacao.pedido.id} - "
             f"R$ {resultado['amount']}"
         )
 

@@ -12,21 +12,6 @@ class PedidoService:
     @staticmethod
     # Cria um novo pedido com itens
     def criar_pedido(data):
-        """
-        Cria um novo pedido com itens e frete.
-
-        Args:
-            data: {
-                "usuario_id": str,
-                "endereco_id": str (opcional),
-                "itens": [{"produto_id": str, "quantidade": int}],
-                "frete": {
-                    "valor": float,
-                    "tipo": str,
-                    "prazo_dias": int (opcional)
-                }
-            }
-        """
         usuario_id = data.get("usuario_id")
         endereco_id = data.get("endereco_id")
         itens = data.get("itens", [])
@@ -34,7 +19,6 @@ class PedidoService:
 
         if not usuario_id:
             raise ValueError("Usuário não informado")
-
         if not itens:
             raise ValueError("O pedido precisa ter ao menos um item")
 
@@ -59,12 +43,21 @@ class PedidoService:
         # Validar frete
         frete_valor = Decimal("0")
         frete_tipo = None
+        frete_servico_id = None
+        frete_servico_nome = None
+
         if frete:
             frete_valor = Decimal(str(frete.get("valor", 0)))
-            frete_tipo = frete.get("tipo")
+            frete_tipo = frete.get("tipo")  # "Jadlog", "Correios"
+            frete_servico_id = frete.get("servico_id")  # 3
+            frete_servico_nome = frete.get("servico")  # ".Package"
 
             if frete_valor < 0:
                 raise ValueError("Valor do frete inválido")
+
+            # Validar que temos o service_id
+            if not frete_servico_id:
+                raise ValueError("ID do serviço de frete não informado")
 
         # Criar o pedido
         pedido = Pedido(
@@ -73,6 +66,8 @@ class PedidoService:
             valor_total=0,
             frete_valor=frete_valor,
             frete_tipo=frete_tipo,
+            frete_servico_id=frete_servico_id,  # ← NOVO
+            frete_servico_nome=frete_servico_nome,  # ← NOVO
         )
         db.session.add(pedido)
         db.session.flush()
@@ -129,6 +124,7 @@ class PedidoService:
             "valor_frete": float(frete_valor),
             "valor_total": float(pedido.valor_total),
             "frete_tipo": frete_tipo,
+            "frete_servico": frete_servico_nome,
         }
 
     # Retorna pedido pelo ID

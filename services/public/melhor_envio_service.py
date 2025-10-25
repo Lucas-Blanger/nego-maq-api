@@ -36,10 +36,14 @@ def _only_digits(s):
 
 
 def _num(v):
+    """Normaliza Decimal -> float, mantém int/float, tenta converter strings numéricas."""
     if isinstance(v, Decimal):
         return float(v)
     if isinstance(v, (int, float)):
         return v
+    if isinstance(v, str):
+        # Remove vírgulas e converte para float
+        v = v.replace(",", ".")
     try:
         return float(v)
     except Exception:
@@ -104,6 +108,34 @@ def calcular_frete(from_postal_code, to_postal_code, weight, height, width, leng
         ) from e
 
 
+def criar_pedido_melhor_envio(pedido):
+    from_postal_code = EMPRESA_CEP or os.getenv("EMPRESA_CEP")
+    to_postal_code = getattr(pedido.endereco, "cep", None)
+
+    if not to_postal_code:
+        raise ValueError("CEP de destino não encontrado no pedido")
+
+    # Validar se o pedido tem itens
+    if not pedido.itens or len(pedido.itens) == 0:
+        raise ValueError("Pedido não possui itens")
+
+    # Pegar o service_id salvo durante a cotação
+    service_id = getattr(pedido, "frete_servico_id", None)
+
+    if not service_id:
+        raise ValueError(
+            "ID do serviço de frete não encontrado. "
+            "Certifique-se de enviar 'servico_id' ao criar o pedido."
+        )
+
+    logger.info(
+        f"Criando envio para pedido #{pedido.id}: "
+        f"Serviço {pedido.frete_servico_nome or pedido.frete_tipo} (ID: {service_id})"
+    )
+
+    total_peso = sum(_num(i.peso) * int(i.quantidade) for i in pedido.itens)
+
+
 def calcular_frete_pedido(cep_origem, cep_destino, itens):
     """
     Calcula o frete para múltiplos itens de um pedido.
@@ -140,15 +172,35 @@ def listar_transportadoras():
 
 
 def obter_id_servico_por_nome(nome_servico, resultado_calculo):
+    """
+    Busca o ID do serviço pelo nome da transportadora.
+    Se não encontrar exato, retorna o mais barato disponível.
+    """
     nome_servico = nome_servico.strip().upper()
 
+    # Tentar encontrar o serviço exato
     for opcao in resultado_calculo:
         nome_api = opcao.get("name", "").upper()
         if nome_servico in nome_api:
+            logger.info(
+                f"Serviço encontrado: {opcao.get('name')} - R$ {opcao.get('price')}"
+            )
             return opcao["id"]
 
+    # Se não encontrou, pegar o mais barato disponível
+    if resultado_calculo:
+        opcao_mais_barata = min(
+            resultado_calculo, key=lambda x: x.get("price", float("inf"))
+        )
+        logger.warning(
+            f"Serviço '{nome_servico}' não disponível. "
+            f"Usando alternativa: {opcao_mais_barata.get('name')} - "
+            f"R$ {opcao_mais_barata.get('price')}"
+        )
+        return opcao_mais_barata["id"]
+
     raise ValueError(
-        f"Serviço '{nome_servico}' não encontrado no resultado do cálculo."
+        f"Serviço '{nome_servico}' não encontrado e nenhuma alternativa disponível."
     )
 
 
@@ -167,19 +219,32 @@ def criar_pedido_melhor_envio(pedido):
     if not pedido.itens or len(pedido.itens) == 0:
         raise ValueError("Pedido não possui itens")
 
+    # Validar se o pedido tem itens
+    if not pedido.itens or len(pedido.itens) == 0:
+        raise ValueError("Pedido não possui itens")
+
+    # Verificar se temos o service_id salvo
+    service_id = getattr(pedido, "frete_servico_id", None)
+
+    if not service_id:
+        # Fallback: recalcular e buscar pelo nome
+        logger.warning(f"Pedido #{pedido.id} sem frete_servico_id, recalculando frete")
+        total_peso = sum(_num(i.peso) * int(i.quantidade) for i in pedido.itens)
+
+        resultado_frete = calcular_frete(
+            from_postal_code=from_postal_code,
+            to_postal_code=to_postal_code,
+            weight=total_peso,
+            height=max(int(_num(i.altura)) for i in pedido.itens),
+            width=max(int(_num(i.largura)) for i in pedido.itens),
+            length=max(int(_num(i.comprimento)) for i in pedido.itens),
+        )
+
+        service_id = obter_id_servico_por_nome(pedido.frete_tipo, resultado_frete)
+    else:
+        logger.info(f"Usando service_id salvo: {service_id}")
+
     total_peso = sum(_num(i.peso) * int(i.quantidade) for i in pedido.itens)
-
-    # Calcular frete para obter service_id
-    resultado_frete = calcular_frete(
-        from_postal_code=from_postal_code,
-        to_postal_code=to_postal_code,
-        weight=total_peso,
-        height=max(int(_num(i.altura)) for i in pedido.itens),
-        width=max(int(_num(i.largura)) for i in pedido.itens),
-        length=max(int(_num(i.comprimento)) for i in pedido.itens),
-    )
-
-    service_id = obter_id_servico_por_nome(pedido.frete_tipo, resultado_frete)
 
     # Recupera CPF do usuário associado ao pedido e normaliza
     usuario = getattr(pedido, "usuario", None)
@@ -244,15 +309,15 @@ def criar_pedido_melhor_envio(pedido):
     for item in pedido.itens:
         products.append(
             {
-                "name": item.produto.nome[:50],
+                "name": item.produto.nome[:50],  # Limite de caracteres
                 "quantity": int(item.quantidade),
-                "unitary_value": float(_num(item.preco_unitario)),
+                "unitary_value": round(float(_num(item.preco_unitario)), 2),
             }
         )
 
     # Montar payload completo conforme documentação Melhor Envio
     payload = {
-        "service": service_id,
+        "service": service_id,  # ID do serviço (obrigatório)
         "from": {
             "name": EMPRESA_NOME,
             "postal_code": _only_digits(from_postal_code),
@@ -281,11 +346,13 @@ def criar_pedido_melhor_envio(pedido):
                 "height": int(_num(max(i.altura for i in pedido.itens))),
                 "width": int(_num(max(i.largura for i in pedido.itens))),
                 "length": int(_num(max(i.comprimento for i in pedido.itens))),
-                "weight": float(_num(total_peso) / 1000.0),  # Converter para kg
+                "weight": round(
+                    float(_num(total_peso) / 1000.0), 3
+                ),  # Converter para kg com 3 casas decimais
             }
         ],
         "options": {
-            "insurance_value": float(pedido.valor_total),
+            "insurance_value": round(float(_num(pedido.valor_total)), 2),
             "receipt": False,
             "own_hand": False,
             "collect": False,
@@ -303,19 +370,28 @@ def criar_pedido_melhor_envio(pedido):
         if isinstance(result, dict):
             order_id = result.get("id")
             protocol = result.get("protocol")
+            service_name = result.get("service_name", "")
+            price = result.get("price", 0)
         else:
             # Se retornar lista, pegar primeiro item
             order_id = result[0].get("id") if result else None
             protocol = result[0].get("protocol") if result else None
+            service_name = result[0].get("service_name", "") if result else ""
+            price = result[0].get("price", 0) if result else 0
 
         if not order_id:
             raise ValueError(f"ID do pedido não retornado pela API: {result}")
 
-        logger.info(f"Pedido Melhor Envio criado: {protocol} (ID: {order_id})")
+        logger.info(
+            f"Pedido Melhor Envio criado: {protocol} | "
+            f"Serviço: {service_name} | R$ {price}"
+        )
 
         return {
             "melhor_envio_id": order_id,
             "protocol": protocol,
+            "service_name": service_name,
+            "price": price,
         }
 
     except requests.exceptions.HTTPError as e:
@@ -335,7 +411,7 @@ def criar_pedido_melhor_envio(pedido):
 
 
 def comprar_envio(order_id):
-    # Compra o envio"""
+    """Compra o envio"""
     url = f"{MELHOR_ENVIO_API}/me/shipment/checkout"
     response = requests.post(url, headers=HEADERS, json={"orders": [order_id]})
     response.raise_for_status()
@@ -343,7 +419,7 @@ def comprar_envio(order_id):
 
 
 def gerar_etiqueta(order_id):
-    # Gera a etiqueta de envio"""
+    """Gera a etiqueta de envio"""
     url = f"{MELHOR_ENVIO_API}/me/shipment/generate"
     response = requests.post(url, headers=HEADERS, json={"orders": [order_id]})
     response.raise_for_status()
@@ -351,7 +427,7 @@ def gerar_etiqueta(order_id):
 
 
 def imprimir_etiqueta(order_id):
-    # Retorna o link de impressão da etiqueta"""
+    """Retorna o link de impressão da etiqueta"""
     url = f"{MELHOR_ENVIO_API}/me/shipment/print"
     response = requests.post(url, headers=HEADERS, json={"orders": [order_id]})
     response.raise_for_status()

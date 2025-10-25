@@ -19,8 +19,10 @@ class Pedido(db.Model):
     status = db.Column(
         db.Enum(StatusPedidoEnum), nullable=False, default=StatusPedidoEnum.PENDENTE
     )
-    frete_valor = db.Column(db.Numeric(10, 2), nullable=True)
-    frete_tipo = db.Column(db.String(50), nullable=True)
+    frete_tipo = db.Column(db.String(50))
+    frete_valor = db.Column(db.Numeric(10, 2))
+    frete_servico_id = db.Column(db.Integer)
+    frete_servico_nome = db.Column(db.String(50))
     criado_em = db.Column(db.DateTime, server_default=func.now())
     atualizado_em = db.Column(
         db.DateTime, server_default=func.now(), onupdate=func.now()
