@@ -7,8 +7,6 @@ API_BASE_URL = os.getenv("API_BASE_URL")
 
 class MercadoPagoService:
 
-    # Serviço para integração com Mercado Pago Checkout Pro.
-
     def __init__(self):
         if not MERCADOPAGO_ACCESS_TOKEN:
             raise ValueError("MERCADOPAGO_ACCESS_TOKEN não configurado")
@@ -47,9 +45,18 @@ class MercadoPagoService:
 
         # Adicionar frete como item separado
         if pedido.frete_valor and pedido.frete_valor > 0:
+            # Montar nome descritivo do frete
+            nome_frete = "Frete"
+
+            if hasattr(pedido, "frete_servico_nome") and pedido.frete_servico_nome:
+                nome_frete = f"Frete - {pedido.frete_servico_nome}"
+            elif pedido.frete_tipo:
+                nome_frete = f"Frete - {pedido.frete_tipo}"
+
             mp_items.append(
                 {
-                    "title": f"Frete - {pedido.frete_tipo or 'Entrega'}",
+                    "title": nome_frete,
+                    "description": "Entrega para o endereço cadastrado",
                     "quantity": 1,
                     "unit_price": float(pedido.frete_valor),
                     "currency_id": "BRL",
@@ -125,7 +132,6 @@ class MercadoPagoService:
     def processar_webhook(self, data):
 
         # Processa notificações de webhook do Mercado Pago.
-
         try:
             topic = data.get("topic") or data.get("type")
             print(f"[MercadoPago] Webhook tipo: {topic}")

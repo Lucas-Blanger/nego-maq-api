@@ -12,6 +12,7 @@ from services.public.melhor_envio_service import (
     gerar_etiqueta,
     imprimir_etiqueta,
 )
+from decimal import Decimal
 import logging
 
 logger = logging.getLogger(__name__)
@@ -87,7 +88,7 @@ class PagamentoService:
         ).first()
 
         if not transacao:
-            # Buscar pelo pedido_id (external_reference)
+            # Buscar pelo pedido_id
             pedido_id = webhook_info.get("pedido_id")
             if pedido_id:
                 transacao = (
@@ -133,6 +134,23 @@ class PagamentoService:
 
         # Atualizar pedido
         pedido = transacao.pedido
+
+        if (
+            pedido.status == StatusPedidoEnum.EM_SEPARACAO
+            and novo_status == StatusPagamentoEnum.APROVADO
+        ):
+            logger.info(
+                f"Pedido #{pedido.id} já processado, ignorando webhook duplicado"
+            )
+            return {
+                "transacao_id": transacao.id,
+                "pedido_id": pedido.id,
+                "status_anterior": status_anterior.value,
+                "status_novo": novo_status.value,
+                "pedido_status": pedido.status.value,
+                "duplicado": True,
+            }
+
         if novo_status == StatusPagamentoEnum.APROVADO:
             pedido.status = StatusPedidoEnum.PAGO
             logger.info(f"Pedido #{pedido.id} aprovado - R$ {pedido.valor_total}")
@@ -157,15 +175,21 @@ class PagamentoService:
                     )
                     pedido.frete_tipo = servico_usado
 
-                # Se o preço mudou, atualizar
-                if (
-                    preco_real
-                    and abs(float(preco_real) - float(pedido.frete_valor)) > 0.01
-                ):
+                # Se o preço mudou mais de R$ 0,10, atualizar e logar
+                diferenca_preco = abs(float(preco_real) - float(pedido.frete_valor))
+                if preco_real and diferenca_preco > 0.10:
                     logger.warning(
-                        f"Preço frete atualizado: R$ {pedido.frete_valor} → R$ {preco_real}"
+                        f"Preço frete atualizado: R$ {pedido.frete_valor:.2f} → R$ {preco_real:.2f} "
+                        f"(diferença: R$ {diferenca_preco:.2f})"
                     )
+                    # Atualizar o valor do frete e o total
+                    valor_antigo_total = pedido.valor_total
                     pedido.frete_valor = preco_real
+                    pedido.valor_total = (
+                        valor_antigo_total
+                        - float(pedido.frete_valor)
+                        + float(preco_real)
+                    )
 
                 # 2. Comprar o frete
                 comprar_envio(pedido.melhor_envio_id)
@@ -187,7 +211,7 @@ class PagamentoService:
 
             except Exception as e:
                 logger.error(
-                    f"❌ Erro ao processar envio do pedido #{pedido.id}: {str(e)}"
+                    f"Erro ao processar envio do pedido #{pedido.id}: {str(e)}"
                 )
                 # Não vamos falhar o pagamento por causa do envio
                 # O pedido fica como PAGO e pode ser enviado manualmente depois

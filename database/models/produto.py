@@ -12,7 +12,7 @@ class Produto(db.Model):
     img = db.Column(db.Text, nullable=True)
     estoque = db.Column(db.Integer, nullable=False, default=0)
 
-    peso = db.Column(db.Numeric(10, 2), nullable=False)  # em kg ou gramas
+    peso = db.Column(db.Numeric(10, 2), nullable=False)  # em kg
     altura = db.Column(db.Integer, nullable=False)  # cm
     largura = db.Column(db.Integer, nullable=False)  # cm
     comprimento = db.Column(db.Integer, nullable=False)  # cm
