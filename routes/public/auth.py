@@ -2,7 +2,8 @@ from flask import Blueprint, request, jsonify
 from services.public.auth_service import (
     registrar as registrar_service,
     login as login_service,
-    recuperar_senha as recuperar_senha_service,
+    solicitar_recuperacao_senha as solicitar_recuperacao_service,
+    verificar_codigo_e_redefinir_senha as verificar_codigo_service,
     editar_perfil as editar_perfil_service,
 )
 from utils.crypto_utils import descriptografar_cpf
@@ -75,13 +76,41 @@ def login():
         return jsonify({"erro": str(e)}), 401
 
 
-#  RECUPERAÇÃO DE SENHA
-@auth_routes.route("/recuperar", methods=["POST"])
-def recuperar_senha():
+# SOLICITAR CÓDIGO DE RECUPERAÇÃO
+@auth_routes.route("/recuperar/solicitar", methods=["POST"])
+def solicitar_recuperacao():
     try:
         data = request.get_json()
-        usuario = recuperar_senha_service(data.get("email"), data.get("nova_senha"))
+        email = data.get("email")
+
+        if not email:
+            return jsonify({"erro": "Email é obrigatório"}), 400
+
+        solicitar_recuperacao_service(email)
+        return (
+            jsonify({"mensagem": "Código de recuperação enviado para seu email"}),
+            200,
+        )
+
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
+
+
+# VERIFICAR CÓDIGO E REDEFINIR SENHA
+@auth_routes.route("/recuperar/verificar", methods=["POST"])
+def verificar_codigo_recuperacao():
+    try:
+        data = request.get_json()
+        email = data.get("email")
+        codigo = data.get("codigo")
+        nova_senha = data.get("nova_senha")
+
+        if not email or not codigo or not nova_senha:
+            return jsonify({"erro": "Email, código e nova senha são obrigatórios"}), 400
+
+        verificar_codigo_service(email, codigo, nova_senha)
         return jsonify({"mensagem": "Senha atualizada com sucesso"}), 200
+
     except ValueError as e:
         return jsonify({"erro": str(e)}), 400
 

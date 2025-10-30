@@ -1,7 +1,11 @@
+from datetime import datetime, timedelta
+import random
+import string
 from database import db
 from database.models import Usuario
 from utils.jwt_utils import gerar_token
 from utils.crypto_utils import criptografar_cpf, descriptografar_cpf
+from utils.email import enviar_email
 
 
 # Registra um novo usuário
@@ -43,18 +47,6 @@ def login(email, senha):
         token = gerar_token(usuario)
         return usuario, token
     raise ValueError("Credenciais inválidas")
-
-
-# Recupera/Atualiza a senha do usuário
-def recuperar_senha(email, nova_senha):
-
-    usuario = Usuario.query.filter_by(email=email).first()
-    if not usuario:
-        raise ValueError("Usuário não encontrado")
-
-    usuario.set_senha(nova_senha)
-    db.session.commit()
-    return usuario
 
 
 # Edita o perfil do usuário
@@ -104,4 +96,153 @@ def editar_perfil(
         usuario.set_senha(nova_senha)
 
     db.session.commit()
+    return usuario
+
+
+def gerar_codigo_recuperacao():
+    # Gera um código de 6 dígitos
+    return "".join(random.choices(string.digits, k=6))
+
+
+def solicitar_recuperacao_senha(email):
+    # Envia código de recuperação para o email do usuário
+    usuario = Usuario.query.filter_by(email=email).first()
+    if not usuario:
+        raise ValueError("Usuário não encontrado")
+
+    # Gera código e define expiração (15 minutos)
+    codigo = gerar_codigo_recuperacao()
+    expiracao = datetime.utcnow() + timedelta(minutes=15)
+
+    usuario.codigo_recuperacao = codigo
+    usuario.codigo_expiracao = expiracao
+    db.session.commit()
+
+    assunto = "Código de Recuperação - NegoMaq Couros & Facas"
+    corpo = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); padding: 40px 30px; text-align: center;">
+                                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">
+                                    COUROS<span style="color: #ff3333;">NEGO</span>MAQ
+                                </h1>
+                                <p style="color: #cccccc; margin: 10px 0 0 0; font-size: 14px; letter-spacing: 1px;">
+                                    COUROS & FACAS ARTESANAIS
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Conteúdo -->
+                        <tr>
+                            <td style="padding: 40px 30px;">
+                                <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px;">
+                                    Recuperação de Senha
+                                </h2>
+                                
+                                <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                                    Olá <strong style="color: #333333;">{usuario.nome}</strong>,
+                                </p>
+                                
+                                <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                                    Recebemos uma solicitação para redefinir a senha da sua conta. 
+                                    Use o código de verificação abaixo para continuar:
+                                </p>
+                                
+                                <!-- Box do Código -->
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                                    <tr>
+                                        <td style="background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%); border-radius: 8px; padding: 30px; text-align: center;">
+                                            <p style="color: #ffffff; font-size: 14px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px;">
+                                                Seu Código de Verificação
+                                            </p>
+                                            <h1 style="color: #ffffff; margin: 0; font-size: 48px; font-weight: bold; letter-spacing: 12px; font-family: 'Courier New', monospace;">
+                                                {codigo}
+                                            </h1>
+                                        </td>
+                                    </tr>
+                                </table>
+                                
+                                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fff8e1; border-left: 4px solid #ffc107; border-radius: 4px; padding: 15px; margin: 20px 0;">
+                                    <tr>
+                                        <td>
+                                            <p style="color: #856404; font-size: 14px; margin: 0; line-height: 1.6;">
+                                                <strong>Este código expira em 15 minutos.</strong><br>
+                                                Por segurança, não compartilhe este código com ninguém.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                
+                                <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+                                    Se você não solicitou esta recuperação de senha, por favor ignore este email. 
+                                    Sua conta permanecerá segura.
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="background-color: #1a1a1a; padding: 30px; text-align: center; border-top: 3px solid #ff3333;">
+                                <p style="color: #cccccc; font-size: 14px; margin: 0 0 10px 0;">
+                                    <strong style="color: #ffffff;">NegoMaq Couros & Facas</strong>
+                                </p>
+                                <p style="color: #999999; font-size: 12px; margin: 0 0 15px 0; line-height: 1.5;">
+                                    Fabricante de Artefatos em Couros 100% Legítimo<br>
+                                    Especialista em Avental Churrasqueiro
+                                </p>
+                                <p style="color: #666666; font-size: 11px; margin: 0;">
+                                    © 2025 NegoMaq. Todos os direitos reservados.
+                                </p>
+                            </td>
+                        </tr>
+                        
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    if not enviar_email(usuario.email, assunto, corpo):
+        raise ValueError("Erro ao enviar email. Tente novamente.")
+
+    return usuario
+
+
+def verificar_codigo_e_redefinir_senha(email, codigo, nova_senha):
+    # Verifica o código e redefine a senha
+    usuario = Usuario.query.filter_by(email=email).first()
+
+    if not usuario:
+        raise ValueError("Usuário não encontrado")
+
+    if not usuario.codigo_recuperacao:
+        raise ValueError("Nenhum código de recuperação foi solicitado")
+
+    if usuario.codigo_expiracao < datetime.utcnow():
+        # Limpa o código expirado
+        usuario.codigo_recuperacao = None
+        usuario.codigo_expiracao = None
+        db.session.commit()
+        raise ValueError("Código expirado. Solicite um novo código")
+
+    if usuario.codigo_recuperacao != codigo:
+        raise ValueError("Código inválido")
+
+    # Atualiza a senha e limpa o código
+    usuario.set_senha(nova_senha)
+    usuario.codigo_recuperacao = None
+    usuario.codigo_expiracao = None
+    db.session.commit()
+
     return usuario

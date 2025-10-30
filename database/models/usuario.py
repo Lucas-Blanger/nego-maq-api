@@ -1,6 +1,6 @@
 import uuid
 from database import db
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from cryptography.fernet import Fernet
 
@@ -14,6 +14,8 @@ class Usuario(db.Model):
     cpf = db.Column("cpf", db.String(255), nullable=True)
     senha_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    codigo_recuperacao = db.Column(db.String(6), nullable=True)
+    codigo_expiracao = db.Column(db.DateTime, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
