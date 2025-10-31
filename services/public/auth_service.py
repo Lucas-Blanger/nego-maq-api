@@ -135,9 +135,7 @@ def solicitar_recuperacao_senha(email):
                         <tr>
                             <td style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); padding: 40px 30px; text-align: center;">
                                 <img src="https://res.cloudinary.com/dq4catqou/image/upload/v1761932437/p2jof6awhzpzjiddfk7d.png" alt="Logo NegoMaq" width="120" style="margin-bottom: 15px; border-radius: 8px;">
-                                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">
-                                    COUROS<span style="color: #ff3333;">NEGO</span>MAQ
-                                 </h1>
+                                
                                 <p style="color: #cccccc; margin: 10px 0 0 0; font-size: 14px; letter-spacing: 1px;">
                                     COUROS & FACAS ARTESANAIS
                                 </p>
