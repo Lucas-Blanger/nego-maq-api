@@ -7,10 +7,6 @@ from services.admin.admin_service import (
     atualizar_estoque as atualizar_estoque_service,
     criar_promocao as criar_promocao_service,
     remover_promocao as remover_promocao_service,
-    get_top_produtos_vendidos,
-    get_produtos_mais_visualizados,
-    get_total_vendas_periodo,
-    get_taxa_conversao,
 )
 from datetime import datetime
 from utils.middlewares.auth import admin_required
@@ -123,25 +119,3 @@ def remover_promocao_route(produto_id):
         return jsonify({"mensagem": "Promoção removida com sucesso"}), 200
     except (ValueError, PermissionError) as e:
         return jsonify({"erro": str(e)}), 400 if isinstance(e, ValueError) else 403
-
-
-# DASHBOARD
-
-
-# Retorna estatísticas para o painel do admin
-@admin_routes.route("/dashboard", methods=["GET"])
-@admin_required
-def dashboard_data():
-    try:
-        return jsonify(
-            {
-                "top_vendidos": get_top_produtos_vendidos(),
-                "mais_visualizados": get_produtos_mais_visualizados(),
-                "total_vendas_mes": get_total_vendas_periodo(
-                    datetime(2025, 8, 1), datetime(2025, 8, 31)
-                ),
-                "taxa_conversao": get_taxa_conversao(),
-            }
-        )
-    except PermissionError as e:
-        return jsonify({"erro": str(e)}), 403

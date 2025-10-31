@@ -14,7 +14,6 @@ def seed():
         db.create_all()
 
         # Criar usuário admin
-        # Criar usuário admin
         if not Usuario.query.filter_by(email="admin@loja.com").first():
             admin = Usuario(
                 nome="Admin",
