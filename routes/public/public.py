@@ -175,7 +175,11 @@ def listar_promocoes():
                 "preco_original": float(p.produto.preco),
                 "desconto_percentual": p.desconto_percentual,
                 "preco_com_desconto": round(
-                    p.produto.preco - (p.produto.preco * (p.desconto_percentual / 100)),
+                    float(
+                        PromocaoService.calcular_preco_com_desconto(
+                            p.produto.preco, p.desconto_percentual
+                        )
+                    ),
                     2,
                 ),
             }
