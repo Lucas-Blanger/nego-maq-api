@@ -124,41 +124,6 @@ def buscar_produtos_por_nome():
     )
 
 
-# CARRINHO DE COMPRAS
-
-
-# Adiciona um produto ao carrinho
-@public_routes.route("/carrinho/adicionar/<string:produto_id>", methods=["POST"])
-@token_required
-def adicionar_ao_carrinho(payload, produto_id):
-    usuario_id = payload["id"]
-    try:
-        carrinho_service_instance = CarrinhoService()
-        carrinho = carrinho_service_instance.adicionar(usuario_id, produto_id)
-        return jsonify(
-            {
-                "mensagem": "Produto adicionado",
-                "carrinho": [
-                    {"nome": p.nome, "preco": float(p.preco)} for p in carrinho
-                ],
-            }
-        )
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 400
-
-
-# Finaliza a compra (gera link do WhatsApp)
-@public_routes.route("/finalizar", methods=["GET"])
-@token_required
-def finalizar_compra(payload):
-    usuario_id = payload["id"]
-    try:
-        link = CarrinhoService.finalizar(usuario_id)
-        return jsonify({"whatsapp_url": link})
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 400
-
-
 # PROMOÇÕES
 
 

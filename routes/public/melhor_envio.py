@@ -63,7 +63,7 @@ def calcular(payload):
         return jsonify({"error": str(e)}), 400
 
 
-@frete_routes.route("/rastrear/<pedido_id>", methods=["GET"])
+@frete_routes.route("/rastrear/<string:pedido_id>", methods=["GET"])
 @token_required
 def rastrear_pedido(payload, pedido_id):
 
