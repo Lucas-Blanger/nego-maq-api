@@ -402,7 +402,7 @@ def comprar_envio(order_id):
 
 
 def gerar_etiqueta(order_id):
-    """Gera a etiqueta de envio"""
+    # Gera a etiqueta de envio
     url = f"{MELHOR_ENVIO_API}/me/shipment/generate"
     try:
         response = requests.post(
@@ -418,7 +418,7 @@ def gerar_etiqueta(order_id):
 
 
 def imprimir_etiqueta(order_id):
-    """Retorna o link de impressão da etiqueta"""
+    # Retorna o link de impressão da etiqueta
     url = f"{MELHOR_ENVIO_API}/me/shipment/print"
     try:
         response = requests.post(
@@ -441,3 +441,73 @@ def listar_transportadoras():
     response = requests.get(url, headers=HEADERS, timeout=15)
     response.raise_for_status()
     return response.json()
+
+
+def rastrear_envio(order_id):
+
+    # Consulta o status e histórico de rastreamento de um envio.
+
+    url = f"{MELHOR_ENVIO_API}/me/shipment/tracking"
+
+    try:
+        response = requests.post(
+            url, headers=HEADERS, json={"orders": [order_id]}, timeout=15
+        )
+        response.raise_for_status()
+
+        data = response.json()
+
+        # A API retorna um objeto com o order_id como chave
+        # Ex: {"abc-123": {...dados...}}
+        if isinstance(data, dict) and order_id in data:
+            tracking_info = data[order_id]
+        elif isinstance(data, dict):
+            # Se retornar objeto direto
+            tracking_info = data
+        elif isinstance(data, list) and len(data) > 0:
+            # Se retornar lista, pegar primeiro item
+            tracking_info = data[0]
+        else:
+            raise ValueError(f"Formato de resposta inesperado: {data}")
+
+        logger.info(
+            f"Rastreamento consultado para envio #{order_id}: {tracking_info.get('status')}"
+        )
+        return tracking_info
+
+    except requests.exceptions.HTTPError as e:
+        body = None
+        try:
+            body = response.json()
+        except Exception:
+            body = response.text if response else str(e)
+
+        logger.error(
+            f"Erro ao rastrear envio #{order_id}: "
+            f"{getattr(response, 'status_code', None)} - {body}"
+        )
+        raise ValueError(
+            f"Erro no Melhor Envio: {getattr(response, 'status_code', None)} - {body}"
+        ) from e
+
+
+def obter_historico_rastreamento(tracking_code):
+
+    # Obtém o histórico completo de movimentação do código de rastreio.
+    url = f"{MELHOR_ENVIO_API}/me/shipment/tracking"
+
+    try:
+        # Buscar por código de rastreio
+        response = requests.post(
+            url, headers=HEADERS, json={"orders": [tracking_code]}, timeout=15
+        )
+        response.raise_for_status()
+
+        data = response.json()
+        logger.info(f"Histórico obtido para rastreio {tracking_code}")
+        return data
+
+    except requests.exceptions.HTTPError as e:
+        body = response.text if response else str(e)
+        logger.error(f"Erro ao obter histórico {tracking_code}: {body}")
+        raise
