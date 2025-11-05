@@ -209,7 +209,6 @@ def listar_rastreamentos(payload):
             resultado.append(
                 {
                     "pedido_id": pedido.id,
-                    # "numero_pedido": pedido.numero_pedido,  # ← REMOVER OU AJUSTAR
                     "codigo_rastreio": tracking_info.get("tracking"),
                     "status": tracking_info.get("status"),
                     "transportadora": pedido.frete_tipo,
