@@ -230,17 +230,3 @@ def pedidos_usuario(payload, usuario_id):
             for p in pedidos
         ]
     )
-
-
-# CRIAR TRANSAÇÃO
-@public_routes_pedidos.route("/pedidos/<pedido_id>/transacoes", methods=["POST"])
-@token_required
-def criar_transacao(pedido_id):
-    try:
-        data = request.json or {}
-        transacao = PagamentoService.criar_transacao(
-            pedido_id, data.get("valor"), data.get("metodo_pagamento")
-        )
-        return jsonify(transacao), 201
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 400
