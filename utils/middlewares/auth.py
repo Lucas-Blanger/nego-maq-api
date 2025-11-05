@@ -27,12 +27,18 @@ def token_required(f):
         token = token.split(" ")[1]
 
         if token == ADMIN_TOKEN:
-            payload = {"is_admin": True}
+            payload = {"is_admin": True, "sub": "admin"}
         else:
             try:
                 payload = jwt.decode(
                     token, current_app.config["SECRET_KEY"], algorithms=["HS256"]
                 )
+
+                if "sub" not in payload and "user_id" in payload:
+                    payload["sub"] = payload["user_id"]
+                elif "sub" not in payload and "id" in payload:
+                    payload["sub"] = payload["id"]
+
             except jwt.ExpiredSignatureError:
                 return jsonify({"erro": "Token expirado"}), 401
             except jwt.InvalidTokenError:

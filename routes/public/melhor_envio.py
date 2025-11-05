@@ -174,7 +174,7 @@ def listar_rastreamentos(payload):
             Pedido.query.filter(
                 Pedido.usuario_id == usuario_id, Pedido.melhor_envio_id.isnot(None)
             )
-            .order_by(Pedido.data_pedido.desc())
+            .order_by(Pedido.criado_em.desc())
             .all()
         )
 
@@ -209,12 +209,12 @@ def listar_rastreamentos(payload):
             resultado.append(
                 {
                     "pedido_id": pedido.id,
-                    "numero_pedido": pedido.numero_pedido,
+                    # "numero_pedido": pedido.numero_pedido,  # ← REMOVER OU AJUSTAR
                     "codigo_rastreio": tracking_info.get("tracking"),
                     "status": tracking_info.get("status"),
                     "transportadora": pedido.frete_tipo,
                     "data_pedido": (
-                        pedido.data_pedido.isoformat() if pedido.data_pedido else None
+                        pedido.criado_em.isoformat() if pedido.criado_em else None
                     ),
                     "valor_total": (
                         float(pedido.valor_total) if pedido.valor_total else 0
