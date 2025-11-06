@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
-from services.public.produtos_service import ProdutoService
-from services.public.carrinho_service import CarrinhoService
-from services.public.promocoes_service import PromocaoService
+from services.public.ProdutosServices import ProdutoService
+from services.public.PromocoesService import PromocaoService
 from utils.middlewares.auth import token_required
 
 

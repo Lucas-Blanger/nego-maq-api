@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.admin.admin_pedidos_service import (
+from services.admin.AdminPedidosService import (
     listar_pedidos as listar_pedidos_service,
     atualizar_pedido as atualizar_pedido_service,
     deletar_pedido as deletar_pedido_service,

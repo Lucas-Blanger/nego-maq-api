@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
-from services.public.pedidos_service import PedidoService
-from services.public.pagamentos_service import PagamentoService
+from services.public.PedidosService import PedidoService
+from services.public.PagamentosService import PagamentoService
 from database.models.produto import Produto
 from database.models.endereco import Endereco
-from services.public.melhor_envio_service import calcular_frete_pedido
+from services.public.MelhorEnvioService import calcular_frete_pedido
 from utils.middlewares.auth import token_required
 import os
 

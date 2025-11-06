@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.admin.admin_enderecos_service import (
+from services.admin.AdminEnderecoService import (
     listar_enderecos as listar_enderecos_service,
     atualizar_endereco as atualizar_endereco_service,
     deletar_endereco as deletar_endereco_service,

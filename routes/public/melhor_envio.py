@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 import requests
-from services.public.melhor_envio_service import (
+from services.public.MelhorEnvioService import (
     calcular_frete,
     rastrear_envio,
     obter_historico_rastreamento,

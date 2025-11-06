@@ -5,8 +5,8 @@ from database.models import (
     StatusPagamentoEnum,
     StatusPedidoEnum,
 )
-from services.public.mercadopago_service import MercadoPagoService
-from services.public.melhor_envio_service import (
+from services.public.MercadoPagoService import MercadoPagoService
+from services.public.MelhorEnvioService import (
     criar_pedido_melhor_envio,
     comprar_envio,
     gerar_etiqueta,

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.public.pagamentos_service import PagamentoService
+from services.public.PagamentosService import PagamentoService
 from utils.middlewares.auth import token_required
 
 pagamentos_routes = Blueprint("pagamentos", __name__)

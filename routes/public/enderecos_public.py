@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.public.endereco_service import (
+from services.public.EnderecoService import (
     criar_endereco as criar_endereco_service,
     listar_enderecos_usuario as listar_enderecos_usuario_service,
     obter_endereco as obter_endereco_service,

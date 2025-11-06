@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from instance.config import ADMIN_TOKEN
-from services.admin.admin_service import (
+from services.admin.AdminService import (
     adicionar_produto as adicionar_produto_service,
     deletar_produto as deletar_produto_service,
     atualizar_produto as atualizar_produto_service,
