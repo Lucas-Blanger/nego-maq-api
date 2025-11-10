@@ -7,6 +7,7 @@ from services.admin.AdminPedidosService import (
     deletar_item as deletar_item_service,
     atualizar_transacao as atualizar_transacao_service,
 )
+from datetime import timedelta
 from utils.middlewares.auth import admin_required
 
 admin_pedidos_routes = Blueprint("admin_pedidos", __name__, url_prefix="/admin_pedidos")
@@ -19,10 +20,31 @@ admin_pedidos_routes = Blueprint("admin_pedidos", __name__, url_prefix="/admin_p
 @admin_required
 def listar_pedidos():
     try:
-        resultado = listar_pedidos_service()
-        return jsonify(resultado), 200
-    except PermissionError as e:
-        return jsonify({"erro": str(e)}), 403
+        data_inicial = request.args.get("dataInicial")  # Ex: 2025-01-01
+        data_final = request.args.get("dataFinal")  # Ex: 2025-12-31
+        categoria_id = request.args.get("categoriaId")  # Ex: 1, 2, 3 ou 4
+
+        from datetime import datetime, timedelta
+
+        if data_inicial:
+            data_inicial = datetime.fromisoformat(data_inicial)
+
+        if data_final:
+            data_final = datetime.fromisoformat(data_final) + timedelta(days=1)
+
+        if categoria_id:
+            categoria_id = int(categoria_id)
+
+        pedidos = listar_pedidos_service(
+            data_inicial=data_inicial, data_final=data_final, categoria_id=categoria_id
+        )
+
+        return jsonify(pedidos), 200
+
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
+    except Exception as e:
+        return jsonify({"erro": "Erro ao listar pedidos", "detalhes": str(e)}), 500
 
 
 # Atualizar informações de um pedido específico
