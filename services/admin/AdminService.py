@@ -1,5 +1,5 @@
 from database import db
-from database.models import Produto, Promocao, Evento
+from database.models import Produto, Promocao
 from sqlalchemy import func
 import uuid
 import cloudinary.uploader
@@ -20,8 +20,26 @@ def adicionar_produto(data, file=None):
             f"Categoria inválida. Escolha entre: {', '.join(CATEGORIAS_VALIDAS)}"
         )
 
-    upload_result = cloudinary.uploader.upload(file)
-    image_url = upload_result["secure_url"]
+    obrigatorios = [
+        "nome",
+        "preco",
+        "estoque",
+        "peso",
+        "altura",
+        "largura",
+        "comprimento",
+    ]
+    for campo in obrigatorios:
+        if data.get(campo) is None:
+            raise ValueError(f"Campo obrigatório '{campo}' não informado.")
+
+    image_url = None
+    if file and file.filename != "":
+        try:
+            upload_result = cloudinary.uploader.upload(file)
+            image_url = upload_result["secure_url"]
+        except Exception as e:
+            raise ValueError(f"Erro ao fazer upload da imagem: {str(e)}")
 
     produto = Produto(
         id=str(uuid.uuid4()),
@@ -31,6 +49,10 @@ def adicionar_produto(data, file=None):
         preco=data.get("preco"),
         img=image_url,
         estoque=data.get("estoque"),
+        peso=data.get("peso"),
+        altura=data.get("altura"),
+        largura=data.get("largura"),
+        comprimento=data.get("comprimento"),
     )
     db.session.add(produto)
     db.session.commit()
@@ -59,7 +81,18 @@ def atualizar_produto(produto_id, data):
         )
 
     # Atualiza apenas os campos enviados
-    for campo in ["nome", "descricao", "categoria", "preco", "img", "estoque"]:
+    for campo in [
+        "nome",
+        "descricao",
+        "categoria",
+        "preco",
+        "img",
+        "estoque",
+        "peso",
+        "altura",
+        "largura",
+        "comprimento",
+    ]:
         if campo in data:
             setattr(produto, campo, data[campo])
 
@@ -109,66 +142,3 @@ def remover_promocao(produto_id):
     db.session.delete(promocao)
     db.session.commit()
     return promocao
-
-
-# RELATÓRIOS / DASHBOARD
-
-
-# Retorna os produtos mais vendidos
-def get_top_produtos_vendidos(limit=5):
-    resultados = (
-        db.session.query(
-            Produto.nome,
-            func.count(Evento.id).label("vendas"),
-            func.sum(Produto.preco).label("receita"),
-        )
-        .join(Evento, Produto.id == Evento.produto_id)
-        .filter(Evento.tipo_evento == "compra")
-        .group_by(Produto.id)
-        .order_by(func.count(Evento.id).desc())
-        .limit(limit)
-        .all()
-    )
-    return [dict(nome=r[0], vendas=r[1], receita=float(r[2])) for r in resultados]
-
-
-# Retorna os produtos mais visualizados
-def get_produtos_mais_visualizados(limit=5):
-    resultados = (
-        db.session.query(Produto.nome, func.count(Evento.id).label("visualizacoes"))
-        .join(Evento, Produto.id == Evento.produto_id)
-        .filter(Evento.tipo_evento == "visualizacao")
-        .group_by(Produto.id)
-        .order_by(func.count(Evento.id).desc())
-        .limit(limit)
-        .all()
-    )
-    return [dict(nome=r[0], visualizacoes=r[1]) for r in resultados]
-
-
-# Retorna o total de vendas em um período
-def get_total_vendas_periodo(inicio, fim):
-    total = (
-        db.session.query(func.count(Evento.id))
-        .filter(Evento.tipo_evento == "compra")
-        .filter(Evento.data_evento >= inicio, Evento.data_evento <= fim)
-        .scalar()
-    )
-    return total
-
-
-# Calcula a taxa de conversão (compras / visualizações)
-def get_taxa_conversao():
-    visualizacoes = (
-        db.session.query(func.count(Evento.id))
-        .filter(Evento.tipo_evento == "visualizacao")
-        .scalar()
-    )
-    compras = (
-        db.session.query(func.count(Evento.id))
-        .filter(Evento.tipo_evento == "compra")
-        .scalar()
-    )
-    if visualizacoes == 0:
-        return 0
-    return round((compras / visualizacoes) * 100, 2)

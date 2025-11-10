@@ -24,6 +24,39 @@ def criar_endereco(usuario_id, data):
     return endereco
 
 
+# Edita um endereço existente
+def editar_endereco(endereco_id, data):
+    endereco = Endereco.query.get(endereco_id)
+    if not endereco:
+        raise ValueError("Endereço não encontrado")
+
+    campos_editaveis = [
+        "cep",
+        "logradouro",
+        "numero",
+        "complemento",
+        "bairro",
+        "cidade",
+        "estado",
+    ]
+    for campo in campos_editaveis:
+        if campo in data:
+            setattr(endereco, campo, data[campo])
+
+    db.session.commit()
+    return endereco
+
+
+# Deleta um endereço existente
+def deletar_endereco(endereco_id):
+    endereco = Endereco.query.get(endereco_id)
+    if not endereco:
+        raise ValueError("Endereço não encontrado")
+
+    db.session.delete(endereco)
+    db.session.commit()
+
+
 # Lista todos os endereços de um usuário
 def listar_enderecos_usuario(usuario_id):
     # Retorna uma lista de endereços de um usuário.

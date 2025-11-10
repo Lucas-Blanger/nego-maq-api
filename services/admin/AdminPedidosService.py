@@ -1,11 +1,43 @@
 from database import db
-from database.models import Pedido, ItemPedido, TransacaoPagamento
+from database.models import Pedido, ItemPedido, TransacaoPagamento, Produto
 from database.models import StatusPedidoEnum, StatusPagamentoEnum
+
+CATEGORIAS_MAP = {1: "facas", 2: "aventais", 3: "estojos", 4: "churrascos"}
 
 
 # Listar todos os pedidos
-def listar_pedidos():
-    pedidos = Pedido.query.all()
+def listar_pedidos(data_inicial=None, data_final=None, categoria_id=None):
+    categoria = None
+    if categoria_id is not None:
+        categoria = CATEGORIAS_MAP.get(categoria_id)
+        if not categoria:
+            raise ValueError(
+                f"Categoria ID inválida. IDs aceitos: {list(CATEGORIAS_MAP.keys())}"
+            )
+
+    query = Pedido.query
+
+    filtros = []
+
+    if data_inicial:
+        filtros.append(Pedido.criado_em >= data_inicial)
+
+    if data_final:
+        filtros.append(Pedido.criado_em <= data_final)
+
+    if categoria:
+        query = (
+            query.join(ItemPedido).join(Produto).filter(Produto.categoria == categoria)
+        )
+
+    if filtros:
+        query = query.filter(*filtros)
+
+    if categoria:
+        query = query.distinct()
+
+    pedidos = query.all()
+
     resultado = []
     for p in pedidos:
         resultado.append(
@@ -13,10 +45,11 @@ def listar_pedidos():
                 "id": p.id,
                 "usuario_id": p.usuario_id,
                 "valor_total": float(p.valor_total),
-                "status": p.status.name,  # Converter enum para string
-                "criado_em": p.criado_em,
+                "status": p.status.name,
+                "criado_em": p.criado_em.isoformat() if p.criado_em else None,
             }
         )
+
     return resultado
 
 

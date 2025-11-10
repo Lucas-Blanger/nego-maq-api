@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
-from services.public.produtos_service import ProdutoService
-from services.public.carrinho_service import CarrinhoService
-from services.public.promocoes_service import PromocaoService
+from services.public.ProdutosServices import ProdutoService
+from services.public.PromocoesService import PromocaoService
 from utils.middlewares.auth import token_required
 
 
@@ -124,41 +123,6 @@ def buscar_produtos_por_nome():
     )
 
 
-# CARRINHO DE COMPRAS
-
-
-# Adiciona um produto ao carrinho
-@public_routes.route("/carrinho/adicionar/<string:produto_id>", methods=["POST"])
-@token_required
-def adicionar_ao_carrinho(payload, produto_id):
-    usuario_id = payload["id"]
-    try:
-        carrinho_service_instance = CarrinhoService()
-        carrinho = carrinho_service_instance.adicionar(usuario_id, produto_id)
-        return jsonify(
-            {
-                "mensagem": "Produto adicionado",
-                "carrinho": [
-                    {"nome": p.nome, "preco": float(p.preco)} for p in carrinho
-                ],
-            }
-        )
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 400
-
-
-# Finaliza a compra (gera link do WhatsApp)
-@public_routes.route("/finalizar", methods=["GET"])
-@token_required
-def finalizar_compra(payload):
-    usuario_id = payload["id"]
-    try:
-        link = CarrinhoService.finalizar(usuario_id)
-        return jsonify({"whatsapp_url": link})
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 400
-
-
 # PROMOÇÕES
 
 
@@ -175,7 +139,11 @@ def listar_promocoes():
                 "preco_original": float(p.produto.preco),
                 "desconto_percentual": p.desconto_percentual,
                 "preco_com_desconto": round(
-                    p.produto.preco - (p.produto.preco * (p.desconto_percentual / 100)),
+                    float(
+                        PromocaoService.calcular_preco_com_desconto(
+                            p.produto.preco, p.desconto_percentual
+                        )
+                    ),
                     2,
                 ),
             }

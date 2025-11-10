@@ -1,16 +1,12 @@
 from flask import Blueprint, request, jsonify
 from instance.config import ADMIN_TOKEN
-from services.admin.admin_service import (
+from services.admin.AdminService import (
     adicionar_produto as adicionar_produto_service,
     deletar_produto as deletar_produto_service,
     atualizar_produto as atualizar_produto_service,
     atualizar_estoque as atualizar_estoque_service,
     criar_promocao as criar_promocao_service,
     remover_promocao as remover_promocao_service,
-    get_top_produtos_vendidos,
-    get_produtos_mais_visualizados,
-    get_total_vendas_periodo,
-    get_taxa_conversao,
 )
 from datetime import datetime
 from utils.middlewares.auth import admin_required
@@ -33,6 +29,10 @@ def adicionar_produto_route():
             "categoria": request.form.get("categoria"),
             "preco": request.form.get("preco"),
             "estoque": request.form.get("estoque"),
+            "peso": request.form.get("peso"),
+            "altura": request.form.get("altura"),
+            "largura": request.form.get("largura"),
+            "comprimento": request.form.get("comprimento"),
         }
 
         produto = adicionar_produto_service(data, file)
@@ -119,25 +119,3 @@ def remover_promocao_route(produto_id):
         return jsonify({"mensagem": "Promoção removida com sucesso"}), 200
     except (ValueError, PermissionError) as e:
         return jsonify({"erro": str(e)}), 400 if isinstance(e, ValueError) else 403
-
-
-# DASHBOARD
-
-
-# Retorna estatísticas para o painel do admin
-@admin_routes.route("/dashboard", methods=["GET"])
-@admin_required
-def dashboard_data():
-    try:
-        return jsonify(
-            {
-                "top_vendidos": get_top_produtos_vendidos(),
-                "mais_visualizados": get_produtos_mais_visualizados(),
-                "total_vendas_mes": get_total_vendas_periodo(
-                    datetime(2025, 8, 1), datetime(2025, 8, 31)
-                ),
-                "taxa_conversao": get_taxa_conversao(),
-            }
-        )
-    except PermissionError as e:
-        return jsonify({"erro": str(e)}), 403

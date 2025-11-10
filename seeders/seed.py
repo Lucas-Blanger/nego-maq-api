@@ -2,6 +2,7 @@ import uuid
 from app import create_app
 from database import db
 from database.models import Usuario, Produto
+from utils.crypto_utils import criptografar_cpf
 
 
 # rode python -m seeders.seed para popular o banco de dados (SOMENTE PARA DESENVOLVIMENTO)
@@ -15,7 +16,11 @@ def seed():
         # Criar usuário admin
         if not Usuario.query.filter_by(email="admin@loja.com").first():
             admin = Usuario(
-                nome="Admin", sobrenome="admin", email="admin@loja.com", is_admin=True
+                nome="Admin",
+                sobrenome="admin",
+                email="admin@loja.com",
+                cpf=criptografar_cpf("389.091.660-02"),
+                is_admin=True,
             )
             admin.set_senha("admin123")
             db.session.add(admin)
@@ -23,7 +28,11 @@ def seed():
         # Criar usuário normal
         if not Usuario.query.filter_by(email="teste@teste.com").first():
             usuario = Usuario(
-                nome="Teste", sobrenome="Teste", email="teste@teste.com", is_admin=False
+                nome="Teste",
+                sobrenome="Teste",
+                email="teste@teste.com",
+                cpf=criptografar_cpf("123.377.970-23"),
+                is_admin=False,
             )
             usuario.set_senha("teste")
             db.session.add(usuario)
@@ -38,6 +47,10 @@ def seed():
                 "preco": 199.90,
                 "img": "https://cdn.leroymerlin.com.br/products/faca_artesanal_damasco_6_28_cm_aderente_acabamento_martelado_1571649376_f5ab_600x600.png",
                 "estoque": 15,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
             {
                 "nome": "Faca Desossadora 6''",
@@ -46,6 +59,10 @@ def seed():
                 "preco": 149.90,
                 "img": "https://cdn.leroymerlin.com.br/products/faca_artesanal_damasco_6_28_cm_aderente_acabamento_martelado_1571649376_f5ab_600x600.png",
                 "estoque": 10,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
             {
                 "nome": "Faca Santoku",
@@ -54,6 +71,10 @@ def seed():
                 "preco": 179.90,
                 "img": "https://cdn.leroymerlin.com.br/products/faca_artesanal_damasco_6_28_cm_aderente_acabamento_martelado_1571649376_f5ab_600x600.png",
                 "estoque": 8,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
             # AVENTAIS
             {
@@ -63,6 +84,10 @@ def seed():
                 "preco": 159.90,
                 "img": "https://images.tcdn.com.br/img/img_prod/698067/avental_para_churrasco_todo_em_couro_legitimo_preto_245_1_20200717175842.jpeg",
                 "estoque": 6,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
             {
                 "nome": "Avental Jeans Gourmet",
@@ -71,6 +96,10 @@ def seed():
                 "preco": 99.90,
                 "img": "https://images.tcdn.com.br/img/img_prod/698067/avental_para_churrasco_todo_em_couro_legitimo_preto_245_1_20200717175842.jpeg",
                 "estoque": 12,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
             {
                 "nome": "Avental Preto Básico",
@@ -79,6 +108,10 @@ def seed():
                 "preco": 49.90,
                 "img": "https://images.tcdn.com.br/img/img_prod/698067/avental_para_churrasco_todo_em_couro_legitimo_preto_245_1_20200717175842.jpeg",
                 "estoque": 20,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
             # ESTOJOS
             {
@@ -88,6 +121,10 @@ def seed():
                 "preco": 189.90,
                 "img": "https://images.tcdn.com.br/img/img_prod/655270/estojo_para_facas_ate_43_cm_com_7_espacos_cor_preta_129_1_b19ce0f008a85c3fbeffe478ee4962e6.jpg",
                 "estoque": 5,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
             {
                 "nome": "Estojo Rígido Profissional",
@@ -96,6 +133,10 @@ def seed():
                 "preco": 129.90,
                 "img": "https://images.tcdn.com.br/img/img_prod/655270/estojo_para_facas_ate_43_cm_com_7_espacos_cor_preta_129_1_b19ce0f008a85c3fbeffe478ee4962e6.jpg",
                 "estoque": 7,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
             {
                 "nome": "Estojo Compacto com Alça",
@@ -104,6 +145,10 @@ def seed():
                 "preco": 79.90,
                 "img": "https://images.tcdn.com.br/img/img_prod/655270/estojo_para_facas_ate_43_cm_com_7_espacos_cor_preta_129_1_b19ce0f008a85c3fbeffe478ee4962e6.jpg",
                 "estoque": 9,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
             # CHURRASCOS
             {
@@ -113,6 +158,10 @@ def seed():
                 "preco": 249.90,
                 "img": "https://images.tcdn.com.br/img/img_prod/1337522/kit_churrasco_faca_7_e_acessorios_para_presente_cod_635_373_1_ac21bebac7ba9272a47ddf1089654816.jpg",
                 "estoque": 10,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
             {
                 "nome": "Tabua de Churrasco Rústica",
@@ -121,6 +170,10 @@ def seed():
                 "preco": 179.90,
                 "img": "https://images.tcdn.com.br/img/img_prod/1337522/kit_churrasco_faca_7_e_acessorios_para_presente_cod_635_373_1_ac21bebac7ba9272a47ddf1089654816.jpg",
                 "estoque": 14,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
             {
                 "nome": "Espeto Duplo de Aço Inox",
@@ -129,6 +182,10 @@ def seed():
                 "preco": 69.90,
                 "img": "https://images.tcdn.com.br/img/img_prod/1337522/kit_churrasco_faca_7_e_acessorios_para_presente_cod_635_373_1_ac21bebac7ba9272a47ddf1089654816.jpg",
                 "estoque": 18,
+                "peso": 500.0,
+                "altura": 10,
+                "largura": 10,
+                "comprimento": 10,
             },
         ]
 
@@ -143,6 +200,10 @@ def seed():
                     preco=p["preco"],
                     img=p["img"],
                     estoque=p["estoque"],
+                    peso=p["peso"],
+                    altura=p["altura"],
+                    largura=p["largura"],
+                    comprimento=p["comprimento"],
                 )
                 db.session.add(novo_produto)
 
