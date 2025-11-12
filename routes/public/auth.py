@@ -6,6 +6,7 @@ from services.public.AuthService import (
     verificar_codigo_e_redefinir_senha as verificar_codigo_service,
     editar_perfil as editar_perfil_service,
 )
+from utils.formatters.user_formatter import formatar_dados_usuario
 from utils.crypto_utils import descriptografar_cpf
 from utils.middlewares.auth import token_required
 
@@ -31,15 +32,7 @@ def registrar():
                 {
                     "mensagem": "Usuário criado com sucesso",
                     "token": token,
-                    "usuario": {
-                        "id": usuario.id,
-                        "nome": usuario.nome,
-                        "sobrenome": usuario.sobrenome,
-                        "email": usuario.email,
-                        "telefone": usuario.telefone,
-                        "cpf": descriptografar_cpf(usuario.cpf),
-                        "is_admin": usuario.is_admin,
-                    },
+                    "usuario": formatar_dados_usuario(usuario),
                 }
             ),
             201,
@@ -59,19 +52,12 @@ def login():
                 {
                     "mensagem": "Login realizado com sucesso",
                     "token": token,
-                    "usuario": {
-                        "id": usuario.id,
-                        "nome": usuario.nome,
-                        "sobrenome": usuario.sobrenome,
-                        "email": usuario.email,
-                        "telefone": usuario.telefone,
-                        "cpf": descriptografar_cpf(usuario.cpf),
-                        "is_admin": usuario.is_admin,
-                    },
+                    "usuario": formatar_dados_usuario(usuario),
                 }
             ),
             200,
         )
+
     except ValueError as e:
         return jsonify({"erro": str(e)}), 401
 
@@ -133,18 +119,11 @@ def editar_perfil(payload):
             jsonify(
                 {
                     "mensagem": "Perfil atualizado com sucesso",
-                    "usuario": {
-                        "id": usuario.id,
-                        "nome": usuario.nome,
-                        "sobrenome": usuario.sobrenome,
-                        "email": usuario.email,
-                        "telefone": usuario.telefone,
-                        "cpf": descriptografar_cpf(usuario.cpf),
-                        "is_admin": usuario.is_admin,
-                    },
+                    "usuario": formatar_dados_usuario(usuario),
                 }
             ),
             200,
         )
+
     except ValueError as e:
         return jsonify({"erro": str(e)}), 400
