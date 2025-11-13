@@ -19,9 +19,19 @@ from decimal import Decimal
 def seed():
     app = create_app()
     with app.app_context():
+        db.session.execute(db.text("SET FOREIGN_KEY_CHECKS=0;"))
+        db.session.commit()
+        
         # APAGA TUDO
         db.drop_all()
+            
+        # Reabilita checagem de FK
+        db.session.execute(db.text("SET FOREIGN_KEY_CHECKS=1;"))
+        db.session.commit()
+            
         db.create_all()
+
+
 
         # ADMIN
         admin = Usuario(
