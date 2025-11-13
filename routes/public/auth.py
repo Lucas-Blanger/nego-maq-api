@@ -113,7 +113,6 @@ def editar_perfil(payload):
             novo_email=data.get("novo_email"),
             novo_telefone=data.get("novo_telefone"),
             novo_cpf=data.get("novo_cpf"),
-            nova_senha=data.get("nova_senha"),
         )
         return (
             jsonify(
