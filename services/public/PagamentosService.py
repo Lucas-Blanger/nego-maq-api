@@ -14,6 +14,7 @@ from services.public.MelhorEnvioService import (
 )
 from decimal import Decimal
 import logging
+from services.public.EmailNotificationService import EmailNotificationService
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +152,11 @@ class PagamentoService:
                 f"Pedido #{pedido.id} aprovado - R$ {float(pedido.valor_total):.2f}"
             )
 
+            try:
+                EmailNotificationService.notificar_pagamento_aprovado(pedido)
+            except Exception as e:
+                logger.error(f"Erro ao enviar email de pagamento aprovado: {e}")
+
             # Criar envio no Melhor Envio
             try:
                 logger.info(f"Processando envio do pedido #{pedido.id}")
@@ -171,7 +177,6 @@ class PagamentoService:
                 # 3. Verificar e atualizar preço se mudou
                 preco_real = resultado_me.get("price")
                 if preco_real:
-                    # ✅ CONVERTER TUDO PARA DECIMAL
                     preco_cotado = Decimal(str(pedido.frete_valor))
                     preco_real_decimal = Decimal(str(preco_real))
                     diferenca = preco_real_decimal - preco_cotado

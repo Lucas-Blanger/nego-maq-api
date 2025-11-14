@@ -1,3 +1,5 @@
+from venv import logger
+from database.enums.status_pedido_enum import StatusPedidoEnum
 from database.models.pedido import Pedido
 from database.models.item_pedido import ItemPedido
 from database.models.produto import Produto
@@ -5,6 +7,7 @@ from database.models.usuario import Usuario
 from database.models.endereco import Endereco
 from database import db
 from decimal import Decimal
+from services.public.EmailNotificationService import EmailNotificationService
 
 
 class PedidoService:
@@ -118,6 +121,11 @@ class PedidoService:
         pedido.valor_total = total_produtos + frete_valor
         db.session.commit()
 
+        try:
+            EmailNotificationService.notificar_pedido_criado(pedido)
+        except Exception as e:
+            logger.error(f"Erro ao enviar email de pedido criado: {e}")
+
         return {
             "pedido_id": pedido.id,
             "valor_produtos": float(total_produtos),
@@ -136,3 +144,30 @@ class PedidoService:
     @staticmethod
     def listar_pedidos_usuario(usuario_id):
         return Pedido.query.filter_by(usuario_id=usuario_id).all()
+
+    @staticmethod
+    def atualizar_status_pedido(pedido_id, novo_status, codigo_rastreio=None):
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            raise ValueError("Pedido não encontrado")
+
+        status_anterior = pedido.status
+        pedido.status = novo_status
+        db.session.commit()
+
+        # Enviar notificação de acordo com o novo status
+        try:
+            if novo_status == StatusPedidoEnum.EM_TRANSITO:
+                EmailNotificationService.notificar_pedido_enviado(
+                    pedido, codigo_rastreio
+                )
+            elif novo_status == StatusPedidoEnum.ENTREGUE:
+                EmailNotificationService.notificar_pedido_entregue(pedido)
+        except Exception as e:
+            logger.error(f"Erro ao enviar notificação de status: {e}")
+
+        logger.info(
+            f"Status do pedido #{pedido_id} alterado: {status_anterior.value} → {novo_status.value}"
+        )
+
+        return pedido

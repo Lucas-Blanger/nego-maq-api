@@ -21,17 +21,15 @@ def seed():
     with app.app_context():
         db.session.execute(db.text("SET FOREIGN_KEY_CHECKS=0;"))
         db.session.commit()
-        
+
         # APAGA TUDO
         db.drop_all()
-            
+
         # Reabilita checagem de FK
         db.session.execute(db.text("SET FOREIGN_KEY_CHECKS=1;"))
         db.session.commit()
-            
+
         db.create_all()
-
-
 
         # ADMIN
         admin = Usuario(
@@ -131,7 +129,7 @@ def seed():
         produtos_data = [
             # FACAS
             {
-                "nome": "Faca Chef 8''",
+                "nome": "Faca Chef 8",
                 "descricao": "Faca de aço inoxidável ideal para cortes precisos.",
                 "categoria": "facas",
                 "preco": 199.90,
@@ -143,7 +141,7 @@ def seed():
                 "comprimento": 25,
             },
             {
-                "nome": "Faca Desossadora 6''",
+                "nome": "Faca Desossadora 6",
                 "descricao": "Perfeita para separar carne do osso com facilidade.",
                 "categoria": "facas",
                 "preco": 149.90,
