@@ -314,13 +314,13 @@ def seed():
         # Itens do pedido 1
         item1_1 = ItemPedido(
             pedido_id=pedido1.id,
-            produto_id=produtos["Faca Chef 8''"].id,
+            produto_id=produtos["Faca Chef 8"].id,
             quantidade=1,
-            preco_unitario=produtos["Faca Chef 8''"].preco,
-            peso=produtos["Faca Chef 8''"].peso,
-            altura=produtos["Faca Chef 8''"].altura,
-            largura=produtos["Faca Chef 8''"].largura,
-            comprimento=produtos["Faca Chef 8''"].comprimento,
+            preco_unitario=produtos["Faca Chef 8"].preco,
+            peso=produtos["Faca Chef 8"].peso,
+            altura=produtos["Faca Chef 8"].altura,
+            largura=produtos["Faca Chef 8"].largura,
+            comprimento=produtos["Faca Chef 8"].comprimento,
         )
         item1_2 = ItemPedido(
             pedido_id=pedido1.id,
