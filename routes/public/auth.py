@@ -106,13 +106,21 @@ def verificar_codigo_recuperacao():
 def editar_perfil(payload):
     try:
         data = request.get_json()
+        if not isinstance(data, dict):
+            return jsonify({"erro": "JSON inválido ou vazio"}), 400
+
+        email = payload.get("email") if isinstance(payload, dict) else None
+        if not email:
+            return jsonify({"erro": "Autenticação inválida"}), 401
+
         usuario = editar_perfil_service(
-            email_atual=payload["email"],
+            email_atual=email,
             novo_nome=data.get("novo_nome"),
             novo_sobrenome=data.get("novo_sobrenome"),
             novo_email=data.get("novo_email"),
             novo_telefone=data.get("novo_telefone"),
             novo_cpf=data.get("novo_cpf"),
+            nova_senha=data.get("nova_senha"),
         )
         return (
             jsonify(

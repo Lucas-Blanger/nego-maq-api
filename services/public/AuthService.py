@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import random
 import string
+import re
 from database import db
 from database.models import Usuario
 from utils.jwt_utils import gerar_token
@@ -64,35 +65,38 @@ def editar_perfil(
     if not usuario:
         raise ValueError("Usuário não encontrado")
 
-    if novo_nome:
-        usuario.nome = novo_nome
+    if novo_nome is not None:
+        usuario.nome = novo_nome.strip()
 
-    if novo_sobrenome:
-        usuario.sobrenome = novo_sobrenome
+    if novo_sobrenome is not None:
+        usuario.sobrenome = novo_sobrenome.strip()
 
-    if novo_email:
-        if Usuario.query.filter_by(email=novo_email).first():
+    if novo_email is not None:
+        novo_email = novo_email.strip()
+        found = Usuario.query.filter_by(email=novo_email).first()
+        if found and found.id != usuario.id:
             raise ValueError("Novo email já está em uso")
         usuario.email = novo_email
 
-    if novo_telefone:
-        usuario.telefone = novo_telefone
+    if novo_telefone is not None:
+        usuario.telefone = novo_telefone.strip() or None
 
-    if novo_cpf:
-        cpf_limpo = novo_cpf.replace(".", "").replace("-", "").strip()
-        if len(cpf_limpo) != 11 or not cpf_limpo.isdigit():
-            raise ValueError("CPF inválido")
+    if novo_cpf is not None:
+        cpf_limpo = re.sub(r"\D", "", novo_cpf or "")
+        if cpf_limpo == "":
+            usuario.cpf = None
+        else:
+            if len(cpf_limpo) != 11 or not cpf_limpo.isdigit():
+                raise ValueError("CPF inválido")
+            usuarios_com_cpf = Usuario.query.filter(
+                Usuario.cpf.isnot(None), Usuario.id != usuario.id
+            ).all()
+            for u in usuarios_com_cpf:
+                if descriptografar_cpf(u.cpf) == cpf_limpo:
+                    raise ValueError("CPF já cadastrado")
+            usuario.cpf = criptografar_cpf(cpf_limpo)
 
-        usuarios_com_cpf = Usuario.query.filter(
-            Usuario.cpf.isnot(None), Usuario.id != usuario.id
-        ).all()
-        for u in usuarios_com_cpf:
-            if descriptografar_cpf(u.cpf) == cpf_limpo:
-                raise ValueError("CPF já cadastrado")
-
-        usuario.cpf = criptografar_cpf(cpf_limpo)
-
-    if nova_senha:
+    if nova_senha is not None:
         usuario.set_senha(nova_senha)
 
     db.session.commit()
