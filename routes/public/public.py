@@ -30,6 +30,10 @@ def listar_produtos():
                 "preco": float(p.preco),
                 "img": p.img,
                 "estoque": p.estoque,
+                "peso": float(p.peso),
+                "altura": p.altura,
+                "largura": p.largura,
+                "comprimento": p.comprimento,
             }
             for p in produtos
         ]
@@ -52,6 +56,10 @@ def buscar_produto_por_id(id):
             "preco": float(produto.preco),
             "img": produto.img,
             "estoque": int(produto.estoque),
+            "peso": float(produto.peso),
+            "altura": produto.altura,
+            "largura": produto.largura,
+            "comprimento": produto.comprimento,
         }
     )
 
@@ -70,6 +78,10 @@ def listar_top_estoque():
                 "preco": float(p.preco),
                 "img": p.img,
                 "estoque": p.estoque,
+                "peso": float(p.peso),
+                "altura": p.altura,
+                "largura": p.largura,
+                "comprimento": p.comprimento,
             }
             for p in produtos
         ]
@@ -93,6 +105,10 @@ def listar_ultimos_produtos_adicionados():
                 "preco": float(p.preco),
                 "img": p.img,
                 "estoque": p.estoque,
+                "peso": float(p.peso),
+                "altura": p.altura,
+                "largura": p.largura,
+                "comprimento": p.comprimento,
             }
             for p in produtos
         ]
@@ -117,6 +133,10 @@ def buscar_produtos_por_nome():
                 "preco": float(p.preco),
                 "img": p.img,
                 "estoque": p.estoque,
+                "peso": float(p.peso),
+                "altura": p.altura,
+                "largura": p.largura,
+                "comprimento": p.comprimento,
             }
             for p in produtos
         ]
