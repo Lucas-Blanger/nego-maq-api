@@ -16,9 +16,8 @@ public_enderecos_routes = Blueprint("enderecos_public", __name__)
 @token_required
 def criar_endereco(payload, usuario_id):
     try:
-        if payload["id"] != usuario_id and not payload["is_admin"]:
+        if payload.get("sub") != usuario_id and not payload.get("is_admin"):
             return jsonify({"erro": "Acesso não autorizado"}), 403
-
         data = request.get_json() or {}
         endereco = criar_endereco_service(usuario_id, data)
         return (
@@ -40,10 +39,8 @@ def editar_endereco(payload, endereco_id):
         endereco = obter_endereco_service(endereco_id)
         if not endereco:
             return jsonify({"erro": "Endereço não encontrado"}), 404
-
-        if payload["id"] != endereco.usuario_id and not payload["is_admin"]:
+        if payload.get("sub") != endereco.usuario_id and not payload.get("is_admin"):
             return jsonify({"erro": "Acesso não autorizado"}), 403
-
         endereco_editado = editar_endereco_service(endereco_id, data)
         return (
             jsonify(
@@ -65,10 +62,8 @@ def deletar_endereco(payload, endereco_id):
     endereco = obter_endereco_service(endereco_id)
     if not endereco:
         return jsonify({"erro": "Endereço não encontrado"}), 404
-
-    if payload["id"] != endereco.usuario_id and not payload["is_admin"]:
+    if payload.get("sub") != endereco.usuario_id and not payload.get("is_admin"):
         return jsonify({"erro": "Acesso não autorizado"}), 403
-
     deletar_endereco_service(endereco_id)
     return jsonify({"mensagem": "Endereço deletado com sucesso"}), 200
 
@@ -77,9 +72,8 @@ def deletar_endereco(payload, endereco_id):
 @public_enderecos_routes.route("/usuarios/<usuario_id>/enderecos", methods=["GET"])
 @token_required
 def listar_enderecos_usuario(payload, usuario_id):
-    if payload["id"] != usuario_id and not payload["is_admin"]:
+    if payload.get("sub") != usuario_id and not payload.get("is_admin"):
         return jsonify({"erro": "Acesso não autorizado"}), 403
-
     enderecos = listar_enderecos_usuario_service(usuario_id)
     resultado = [
         {
@@ -104,10 +98,8 @@ def obter_endereco(payload, endereco_id):
     endereco = obter_endereco_service(endereco_id)
     if not endereco:
         return jsonify({"error": "Endereço não encontrado"}), 404
-
-    if payload["id"] != endereco.usuario_id and not payload["is_admin"]:
+    if payload.get("sub") != endereco.usuario_id and not payload.get("is_admin"):
         return jsonify({"erro": "Acesso não autorizado"}), 403
-
     return (
         jsonify(
             {

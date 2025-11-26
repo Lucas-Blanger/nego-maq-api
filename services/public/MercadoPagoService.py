@@ -3,6 +3,8 @@ import mercadopago
 
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN")
 API_BASE_URL = os.getenv("API_BASE_URL")
+BASE_URL = os.environ.get("BASE_URL")
+print(BASE_URL)
 
 
 class MercadoPagoService:
@@ -79,9 +81,9 @@ class MercadoPagoService:
                 },
             },
             "back_urls": {
-                "success": f"{API_BASE_URL}/pagamento/sucesso",
-                "failure": f"{API_BASE_URL}/pagamento/falha",
-                "pending": f"{API_BASE_URL}/pagamento/pendente",
+                "success": f"{BASE_URL}/pagamento/sucesso",
+                "failure": f"{BASE_URL}/pagamento/falha",
+                "pending": f"{BASE_URL}/pagamento/pendente",
             },
             "auto_return": "approved",
             "external_reference": str(pedido.id),
