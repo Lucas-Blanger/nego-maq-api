@@ -171,6 +171,7 @@ def obter_pedido(payload, pedido_id):
         {
             "pedido_id": pedido.id,
             "usuario_id": pedido.usuario_id,
+            "nome_usuario": pedido.usuario.nome if pedido.usuario else None,
             "valor_total": float(pedido.valor_total),
             "status": pedido.status.value,
             "frete_valor": float(pedido.frete_valor) if pedido.frete_valor else None,
@@ -216,6 +217,7 @@ def pedidos_usuario(payload, usuario_id):
         [
             {
                 "pedido_id": p.id,
+                "nome_usuario": p.usuario.nome if p.usuario else None,
                 "valor_total": float(p.valor_total),
                 "status": p.status.value,
                 "frete_valor": float(p.frete_valor) if p.frete_valor else None,

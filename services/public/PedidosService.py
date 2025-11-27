@@ -143,7 +143,11 @@ class PedidoService:
     # Lista todos os pedidos de um usuário
     @staticmethod
     def listar_pedidos_usuario(usuario_id):
-        return Pedido.query.filter_by(usuario_id=usuario_id).all()
+        return (
+            Pedido.query.filter_by(usuario_id=usuario_id)
+            .order_by(Pedido.criado_em.desc())
+            .all()
+        )
 
     @staticmethod
     def atualizar_status_pedido(pedido_id, novo_status, codigo_rastreio=None):
