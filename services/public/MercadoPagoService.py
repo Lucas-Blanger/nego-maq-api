@@ -4,7 +4,6 @@ import mercadopago
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN")
 API_BASE_URL = os.getenv("API_BASE_URL")
 BASE_URL = os.environ.get("BASE_URL")
-print(BASE_URL)
 
 
 class MercadoPagoService:

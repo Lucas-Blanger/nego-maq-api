@@ -1,5 +1,5 @@
 from database import db
-from database.models import Pedido, ItemPedido, TransacaoPagamento, Produto
+from database.models import Pedido, ItemPedido, TransacaoPagamento, Produto, pedido
 from database.models import StatusPedidoEnum, StatusPagamentoEnum
 
 CATEGORIAS_MAP = {1: "facas", 2: "aventais", 3: "estojos", 4: "churrascos"}
@@ -45,6 +45,7 @@ def listar_pedidos(data_inicial=None, data_final=None, categoria_id=None):
                 "id": p.id,
                 "usuario_id": p.usuario_id,
                 "valor_total": float(p.valor_total),
+                "nome": p.usuario.nome if p.usuario else None,
                 "status": p.status.name,
                 "criado_em": p.criado_em.isoformat() if p.criado_em else None,
             }
