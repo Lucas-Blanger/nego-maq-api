@@ -13,14 +13,22 @@ load_dotenv()
 def create_app():
     app = Flask(__name__)
 
-    cors_origins = [
-        os.getenv("BASE_URL"),
-    ]
-    cors_origins = [url for url in cors_origins if url]
+    base_url = os.getenv("BASE_URL")
+
+    if base_url:
+        cors_origins = [
+            base_url,
+            "https://nego-maq.vercel.app",
+            "http://localhost:5173",
+            "http://localhost:9000",
+        ]
+    else:
+
+        cors_origins = ["*"]
 
     CORS(
         app,
-        origins=cors_origins,
+        resources={r"/*": {"origins": cors_origins}},
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
