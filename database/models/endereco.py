@@ -15,4 +15,12 @@ class Endereco(db.Model):
     cidade = db.Column(db.String(100), nullable=False)
     estado = db.Column(db.String(2), nullable=False)
 
-    usuario = db.relationship("Usuario", backref=db.backref("enderecos", lazy=True))
+    usuario = db.relationship(
+        "Usuario",
+        backref=db.backref(
+            "enderecos",
+            lazy=True,
+            cascade="all, delete-orphan",
+            passive_deletes=True,
+        ),
+    )
