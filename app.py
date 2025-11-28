@@ -12,23 +12,22 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    CORS(app, origins=["http://localhost:9000"])
+    CORS(app, origins=[os.getenv("CORS_ORIGIN", "http://localhost:9000")])
 
-    DB_USER = os.getenv("DATABASE_USER")
-    DB_PASSWORD = os.getenv("DATABASE_PASSWORD")
-    DB_HOST = os.getenv("DATABASE_HOST")
-    DB_NAME = os.getenv("DATABASE_NAME")
+    DB_USER = os.getenv("DB_USER")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    DB_HOST = os.getenv("DB_HOST")
+    DB_NAME = os.getenv("DB_NAME")
+    DB_PORT = os.getenv("DB_PORT", "3306")
 
-    conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD)
-    with conn.cursor() as cursor:
-        cursor.execute(
-            f"CREATE DATABASE IF NOT EXISTS {DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    if DATABASE_URL:
+        app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+    else:
+        app.config["SQLALCHEMY_DATABASE_URI"] = (
+            f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
         )
-    conn.close()
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
-        f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
-    )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 

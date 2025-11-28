@@ -1,5 +1,4 @@
 version: "3.9"
-
 services:
   web:
     build: .
@@ -9,31 +8,29 @@ services:
       - .:/app
     env_file:
       - .env
-    depends_on:
-      - db
     command: >
       sh -c "
-      echo 'Aguardando o banco de dados subir...' &&
+      echo 'Aguardando conexão com o banco de dados...' &&
       sleep 5 &&
       echo 'Rodando seed...' &&
       python -m seeders.seed &&
       echo 'Iniciando Gunicorn...' &&
-      gunicorn --reload -b 0.0.0.0:5000 app:app 
+      gunicorn -w 4 -b 0.0.0.0:5000 app:app
       "
+    depends_on:
+      - db
 
   db:
     image: mysql:8.0
-    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: senha123
-      MYSQL_DATABASE: nego_maq
-      MYSQL_USER: adminuser
-      MYSQL_PASSWORD: adminpass
-
+      MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
+      MYSQL_DATABASE: ${DATABASE_NAME}
+      MYSQL_USER: ${DATABASE_USER}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD}
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
-      - db_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
 
 volumes:
-  db_data:
+  mysql_data:
