@@ -17,5 +17,7 @@ class ItemPedido(db.Model):
     altura = db.Column(db.Numeric(10, 2), nullable=False)
     largura = db.Column(db.Numeric(10, 2), nullable=False)
 
-    pedido = db.relationship("Pedido", backref=db.backref("itens", lazy=True))
+    pedido_id = db.Column(
+        db.String(36), db.ForeignKey("pedidos.id", ondelete="CASCADE"), nullable=False
+    )
     produto = db.relationship("Produto", backref=db.backref("itens_pedido", lazy=True))
