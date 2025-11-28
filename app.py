@@ -1,7 +1,7 @@
 from flask import Flask
+from flask_cors import CORS
 from database import db
 from routes import bp
-from flask_cors import CORS
 import pymysql
 from dotenv import load_dotenv
 import os
@@ -12,9 +12,11 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
+
     CORS(
         app,
-        resources={r"/*": {"origins": [os.getenv("BASE_URL")]}},
+        resources={r"/*": {"origins": "*"}},
+        supports_credentials=True,
     )
 
     DB_USER = os.getenv("DB_USER")
@@ -46,7 +48,8 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-    app.register_blueprint(bp)
+    app.register_blueprint(bp, url_prefix="/")
+
     return app
 
 
