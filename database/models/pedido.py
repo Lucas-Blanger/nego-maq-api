@@ -1,7 +1,9 @@
 import uuid
 from database import db
-from sqlalchemy.sql import func
+from sqlalchemy import func
+from datetime import datetime, timedelta
 from database.enums.status_pedido_enum import StatusPedidoEnum
+from utils.date_time import agora_brasil
 
 
 class Pedido(db.Model):
@@ -23,9 +25,12 @@ class Pedido(db.Model):
     frete_valor = db.Column(db.Numeric(10, 2))
     frete_servico_id = db.Column(db.Integer)
     frete_servico_nome = db.Column(db.String(50))
-    criado_em = db.Column(db.DateTime, server_default=func.now())
+    criado_em = db.Column(db.DateTime, default=agora_brasil, nullable=False)
     atualizado_em = db.Column(
-        db.DateTime, server_default=func.now(), onupdate=func.now()
+        db.DateTime,
+        default=agora_brasil,
+        onupdate=agora_brasil,
+        nullable=False,
     )
 
     melhor_envio_id = db.Column(db.String(100), nullable=True)

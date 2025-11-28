@@ -1,8 +1,11 @@
 import uuid
+from sqlalchemy import func
 from database import db
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from cryptography.fernet import Fernet
+
+from utils.date_time import agora_brasil
 
 
 class Usuario(db.Model):
@@ -17,9 +20,12 @@ class Usuario(db.Model):
     codigo_recuperacao = db.Column(db.String(6), nullable=True)
     codigo_expiracao = db.Column(db.DateTime, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    criado_em = db.Column(db.DateTime, default=agora_brasil, nullable=False)
+    atualizado_em = db.Column(
+        db.DateTime,
+        default=agora_brasil,
+        onupdate=agora_brasil,
+        nullable=False,
     )
 
     def set_senha(self, senha):
