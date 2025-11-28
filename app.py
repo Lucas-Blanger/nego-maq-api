@@ -13,10 +13,18 @@ load_dotenv()
 def create_app():
     app = Flask(__name__)
 
+    cors_origins = [
+        os.getenv("BASE_URL"),
+    ]
+    cors_origins = [url for url in cors_origins if url]
+
     CORS(
         app,
-        resources={r"/*": {"origins": "*"}},
+        origins=cors_origins,
         supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        max_age=3600,
     )
 
     DB_USER = os.getenv("DB_USER")
