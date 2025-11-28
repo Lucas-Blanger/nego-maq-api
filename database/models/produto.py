@@ -26,3 +26,5 @@ class Produto(db.Model):
         onupdate=agora_brasil,
         nullable=False,
     )
+
+    itens_pedido = db.relationship("ItemPedido", back_populates="produto")

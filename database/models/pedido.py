@@ -46,3 +46,9 @@ class Pedido(db.Model):
         "Endereco",
         backref=db.backref("pedidos", lazy=True, cascade="all, delete-orphan"),
     )
+    itens = db.relationship(
+        "ItemPedido",
+        back_populates="pedido",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
