@@ -1,7 +1,7 @@
 from flask import Flask
+from flask_cors import CORS
 from database import db
 from routes import bp
-from flask_cors import CORS
 import pymysql
 from dotenv import load_dotenv
 import os
@@ -12,9 +12,26 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
+
+    base_url = os.getenv("BASE_URL")
+
+    if base_url:
+        cors_origins = [
+            base_url,
+            "https://nego-maq.vercel.app",
+            "http://localhost:5173",
+            "http://localhost:9000",
+        ]
+    else:
+        cors_origins = ["*"]
+
     CORS(
         app,
-        resources={r"/*": {"origins": [os.getenv("BASE_URL")]}},
+        resources={r"/*": {"origins": cors_origins}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        max_age=3600,
     )
 
     DB_USER = os.getenv("DB_USER")
@@ -46,7 +63,8 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-    app.register_blueprint(bp)
+    app.register_blueprint(bp, url_prefix="/")
+
     return app
 
 
