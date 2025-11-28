@@ -2,6 +2,7 @@ import uuid
 from database import db
 from sqlalchemy.sql import func
 from database.enums.status_pagamento_enum import StatusPagamentoEnum
+from utils.date_time import agora_brasil
 
 
 class TransacaoPagamento(db.Model):
@@ -22,9 +23,12 @@ class TransacaoPagamento(db.Model):
         db.String(100), nullable=True
     )  # ID do pagamento no Mercado Pago
     mp_preference_id = db.Column(db.String(100), nullable=True)  # ID da preferência
-    criado_em = db.Column(db.DateTime, server_default=func.now())
+    criado_em = db.Column(db.DateTime, default=agora_brasil, nullable=False)
     atualizado_em = db.Column(
-        db.DateTime, server_default=func.now(), onupdate=func.now()
+        db.DateTime,
+        default=agora_brasil,
+        onupdate=agora_brasil,
+        nullable=False,
     )
 
     pedido = db.relationship(
