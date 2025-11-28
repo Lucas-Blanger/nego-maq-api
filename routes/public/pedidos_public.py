@@ -167,68 +167,33 @@ def obter_pedido(payload, pedido_id):
     if not pedido:
         return jsonify({"erro": "Pedido não encontrado"}), 404
 
-    return jsonify(
-        {
-            "pedido_id": pedido.id,
-            "usuario_id": pedido.usuario_id,
-            "nome_usuario": pedido.usuario.nome if pedido.usuario else None,
-            "valor_total": float(pedido.valor_total),
-            "status": pedido.status.value,
-            "frete_valor": float(pedido.frete_valor) if pedido.frete_valor else None,
-            "frete_tipo": pedido.frete_tipo,
-            "itens": [
-                {
-                    "produto_id": i.produto_id,
-                    "quantidade": i.quantidade,
-                    "preco_unitario": float(i.preco_unitario),
-                }
-                for i in pedido.itens
-            ],
-            "transacoes": [
-                {
-                    "id": t.id,
-                    "valor": float(t.valor),
-                    "status": t.status.value,
-                    "metodo_pagamento": t.metodo_pagamento,
-                }
-                for t in pedido.transacoes
-            ],
-            # Adicione dados de envio
-            "envio": (
-                {
-                    "melhor_envio_id": getattr(pedido, "melhor_envio_id", None),
-                    "protocolo": getattr(pedido, "melhor_envio_protocolo", None),
-                    "rastreio": getattr(pedido, "melhor_envio_rastreio", None),
-                    "etiqueta_url": getattr(pedido, "etiqueta_url", None),
-                }
-                if hasattr(pedido, "melhor_envio_id") and pedido.melhor_envio_id
-                else None
-            ),
-        }
-    )
+    return jsonify(pedido), 200
 
 
 # PEDIDOS POR USUÁRIO
 @public_routes_pedidos.route("/usuarios/<usuario_id>/pedidos", methods=["GET"])
 @token_required
 def pedidos_usuario(payload, usuario_id):
-    pedidos = PedidoService.listar_pedidos_usuario(usuario_id)
-    return jsonify(
-        [
-            {
-                "pedido_id": p.id,
-                "nome_usuario": p.usuario.nome if p.usuario else None,
-                "valor_total": float(p.valor_total),
-                "status": p.status.value,
-                "frete_valor": float(p.frete_valor) if p.frete_valor else None,
-                "criado_em": (
-                    p.criado_em.isoformat()
-                    if hasattr(p, "criado_em") and p.criado_em
-                    else None
-                ),
-                "tem_rastreio": hasattr(p, "melhor_envio_id")
-                and p.melhor_envio_id is not None,
-            }
-            for p in pedidos
-        ]
-    )
+    pedidos_objs = PedidoService.listar_pedidos_usuario(usuario_id)
+
+    # Converter cada objeto para dicionário
+    pedidos = [
+        {
+            "pedido_id": p.id,
+            "nome_usuario": p.usuario.nome if p.usuario else None,
+            "sobrenome_usuario": p.usuario.sobrenome if p.usuario else None,
+            "valor_total": float(p.valor_total),
+            "status": p.status.value,
+            "frete_valor": float(p.frete_valor) if p.frete_valor else None,
+            "criado_em": (
+                p.criado_em.isoformat()
+                if hasattr(p, "criado_em") and p.criado_em
+                else None
+            ),
+            "tem_rastreio": hasattr(p, "melhor_envio_id")
+            and p.melhor_envio_id is not None,
+        }
+        for p in pedidos_objs
+    ]
+
+    return jsonify(pedidos), 200

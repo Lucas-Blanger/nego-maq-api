@@ -1,5 +1,6 @@
 from venv import logger
 from database.enums.status_pedido_enum import StatusPedidoEnum
+from database.models import pedido
 from database.models.pedido import Pedido
 from database.models.item_pedido import ItemPedido
 from database.models.produto import Produto
@@ -138,7 +139,59 @@ class PedidoService:
     # Retorna pedido pelo ID
     @staticmethod
     def obter_pedido(pedido_id):
-        return Pedido.query.get(pedido_id)
+        pedido_obj = Pedido.query.get(pedido_id)
+        if not pedido_obj:
+            return None
+
+        itens = (
+            db.session.query(
+                ItemPedido,
+                Produto.nome.label("produto_nome"),
+                Produto.img.label("produto_img"),
+            )
+            .join(Produto, ItemPedido.produto_id == Produto.id)
+            .filter(ItemPedido.pedido_id == pedido_id)
+            .all()
+        )
+
+        pedido_dict = {
+            "id": pedido_obj.id,
+            "usuario_id": pedido_obj.usuario_id,
+            "nome_usuario": pedido_obj.usuario.nome if pedido_obj.usuario else None,
+            "sobrenome_usuario": (
+                pedido_obj.usuario.sobrenome if pedido_obj.usuario else None
+            ),
+            "status": pedido_obj.status.value,
+            "valor_total": float(pedido_obj.valor_total),
+            "frete_valor": (
+                float(pedido_obj.frete_valor) if pedido_obj.frete_valor else None
+            ),
+            "frete_tipo": pedido_obj.frete_tipo,
+            "criado_em": (
+                pedido_obj.criado_em.isoformat() if pedido_obj.criado_em else None
+            ),
+            "atualizado_em": (
+                pedido_obj.atualizado_em.isoformat()
+                if pedido_obj.atualizado_em
+                else None
+            ),
+            "itens": [],
+        }
+
+        for item, produto_nome, produto_img in itens:
+            pedido_dict["itens"].append(
+                {
+                    "id": item.id,
+                    "produto_id": item.produto_id,
+                    "produto_nome": produto_nome,
+                    "produto_img": produto_img,
+                    "quantidade": item.quantidade,
+                    "preco_unitario": float(item.preco_unitario),
+                    "subtotal": float(item.quantidade * item.preco_unitario),
+                }
+            )
+
+        return pedido_dict
 
     # Lista todos os pedidos de um usuário
     @staticmethod
