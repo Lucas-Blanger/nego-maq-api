@@ -18,13 +18,7 @@ def create_app():
     DB_PASSWORD = os.getenv("DATABASE_PASSWORD")
     DB_HOST = os.getenv("DATABASE_HOST")
     DB_NAME = os.getenv("DATABASE_NAME")
-
-    conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD)
-    with conn.cursor() as cursor:
-        cursor.execute(
-            f"CREATE DATABASE IF NOT EXISTS {DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
-        )
-    conn.close()
+    DB_PORT = int(os.getenv("DATABASE_PORT", 3306))
 
     app.config["SQLALCHEMY_DATABASE_URI"] = (
         f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
@@ -33,7 +27,7 @@ def create_app():
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
     cloudinary.config(
-        cloud_name=os.getenv("CLOUDE_NAME"),
+        cloud_name=os.getenv("CLOUD_NAME")
         api_key=os.getenv("API_KEY"),
         api_secret=os.getenv("API_SECRET"),
         secure=True,
