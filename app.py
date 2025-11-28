@@ -27,7 +27,7 @@ def create_app():
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
     cloudinary.config(
-        cloud_name=os.getenv("CLOUD_NAME")
+        cloud_name=os.getenv("CLOUDE_NAME"),
         api_key=os.getenv("API_KEY"),
         api_secret=os.getenv("API_SECRET"),
         secure=True,
