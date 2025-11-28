@@ -12,8 +12,10 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    cors_origin = os.getenv("BASE_URL")
-    CORS(app, origins=[cors_origin])
+    CORS(
+        app,
+        resources={r"/*": {"origins": [os.getenv("BASE_URL")]}},
+    )
 
     DB_USER = os.getenv("DB_USER")
     DB_PASSWORD = os.getenv("DB_PASSWORD")
@@ -51,5 +53,4 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(debug=True)
