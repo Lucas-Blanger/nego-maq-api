@@ -18,7 +18,7 @@ def create_app():
     if base_url:
         cors_origins = [
             base_url,
-            "https://nego-maq.vercel.app",
+            "https://negomaq.vercel.app",
             "http://localhost:5173",
             "http://localhost:9000",
         ]
