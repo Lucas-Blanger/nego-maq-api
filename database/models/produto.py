@@ -2,6 +2,8 @@ import uuid
 from database import db
 from datetime import datetime
 
+from utils.date_time import agora_brasil
+
 
 class Produto(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -17,7 +19,12 @@ class Produto(db.Model):
     largura = db.Column(db.Integer, nullable=False)  # cm
     comprimento = db.Column(db.Integer, nullable=False)  # cm
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    criado_em = db.Column(db.DateTime, default=agora_brasil, nullable=False)
+    atualizado_em = db.Column(
+        db.DateTime,
+        default=agora_brasil,
+        onupdate=agora_brasil,
+        nullable=False,
     )
+
+    itens_pedido = db.relationship("ItemPedido", back_populates="produto")
