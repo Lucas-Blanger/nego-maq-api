@@ -116,7 +116,7 @@ This project helped me develop skills in:
 
 ## 📫 Contact
 
-Lucas Bélanger
+Lucas Blanger
 - LinkedIn: [lucas-blanger-4668a2210](https://www.linkedin.com/in/lucas-blanger-4668a2210/)
 - GitHub: [@Lucas-Blanger](https://github.com/Lucas-Blanger)
 - Portfolio: [lucas-blanger.vercel.app](https://lucas-blanger.vercel.app)
